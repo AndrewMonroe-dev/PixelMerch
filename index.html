@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PixelMerch</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --bg: #14171c;
+    --panel: #1c2028;
+    --panel2: #22262f;
+    --border: #2e333d;
+    --text: #e7e9ee;
+    --muted: #9aa1ac;
+    --accent: #4f8cff;
+    --accent2: #35c98c;
+    --danger: #e5534b;
+    --mono: 'Consolas', 'Menlo', monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    padding: 24px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input[type=text], input[type=number] {
+    width: 100%;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 7px 9px;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  input[type=file] { font-size: 12px; color: var(--muted); margin-bottom: 10px; width: 100%; }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+  button.danger-btn { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 3px 8px; font-size: 11px; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .swatch-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; max-height: 320px; overflow-y: auto; }
+  .swatch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .swatch-chip { width: 22px; height: 22px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; }
+  .swatch-name { flex: 1; font-size: 12px; }
+  .swatch-rgb { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .empty-note { color: var(--muted); font-size: 12px; font-style: italic; }
+  .row2 { display: flex; gap: 10px; }
+  .row2 > div { flex: 1; }
+  .checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .checkbox-row input { margin: 0; }
+  canvas#targetPreview, canvas#mosaicCanvas {
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: repeating-conic-gradient(#20242c 0% 25%, #191c22 0% 50%) 50% / 16px 16px;
+  }
+  .output-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 1200px) { .output-grid { grid-template-columns: 1fr; } }
+  table.summary { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.summary th, table.summary td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  table.summary th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.03em; }
+  .count-chip { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.15); }
+  .toolbar { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .placeholder-box {
+    display: flex; align-items: center; justify-content: center;
+    height: 180px; border: 1px dashed var(--border); border-radius: 8px;
+    color: var(--muted); font-size: 13px; text-align: center; padding: 20px;
+  }
+  .grid-schematic {
+    display: grid;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .grid-cell {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: rgba(0,0,0,0.55);
+    font-family: var(--mono);
+    text-align: center;
+    overflow: hidden;
+    line-height: 1;
+  }
+  .stat-line { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .badge { display: inline-block; background: var(--accent2); color: #06281a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+</style>
+</head>
+<body>
+
+<h1>PixelMerch</h1>
+<div class="sub">Turn any picture into a case-mosaic build schematic. Upload a photo of each product's case face to build a color palette, upload a target image, set a grid size, and convert. Everything runs locally in this browser -- nothing is uploaded anywhere.</div>
+
+<div class="layout">
+  <div class="left-col">
+
+    <div class="panel">
+      <h2>1. Case Palette</h2>
+      <label for="swatchImg">Case face photo</label>
+      <input type="file" id="swatchImg" accept="image/*">
+      <label for="swatchName">Variant name</label>
+      <input type="text" id="swatchName" placeholder="e.g. Cabernet Sauvignon">
+      <button id="addSwatchBtn">Add to palette</button>
+      <div class="swatch-list" id="swatchList"></div>
+      <div class="toolbar">
+        <button class="secondary" id="clearPaletteBtn">Clear palette</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>2. Target Image</h2>
+      <label for="targetImg">Image to convert</label>
+      <input type="file" id="targetImg" accept="image/*">
+      <canvas id="targetPreview" width="300" height="200"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>3. Grid Size</h2>
+      <div class="row2">
+        <div>
+          <label for="cols">Columns</label>
+          <input type="number" id="cols" value="24" min="2" max="120">
+        </div>
+        <div>
+          <label for="rows">Rows</label>
+          <input type="number" id="rows" value="16" min="2" max="120">
+        </div>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="lockAspect" checked>
+        <label style="margin:0" for="lockAspect">Lock rows to image aspect ratio</label>
+      </div>
+      <button id="convertBtn">Convert to mosaic</button>
+    </div>
+
+  </div>
+
+  <div class="right-col">
+    <div class="panel">
+      <h2>Mosaic Preview</h2>
+      <div id="mosaicWrap">
+        <div class="placeholder-box">Add at least one palette swatch and a target image, then click Convert.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="outputPanel" style="display:none;">
+      <h2>Build Schematic + Shopping List</h2>
+      <div class="output-grid">
+        <div>
+          <div class="stat-line" id="gridStat"></div>
+          <div id="gridSchematicWrap" style="margin-top:8px;"></div>
+        </div>
+        <div>
+          <table class="summary" id="summaryTable"></table>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button id="exportCsvBtn">Export CSV</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'pixelmerch_palette_v1';
+  let palette = [];
+  let targetImage = null;
+  let lastGrid = null;
+
+  function loadPalette() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      palette = raw ? JSON.parse(raw) : [];
+    } catch (e) { palette = []; }
+  }
+  function savePalette() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(palette)); } catch (e) {}
+  }
+
+  function rgbStr(rgb) { return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`; }
+  function rgbHex(rgb) {
+    return '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  function averageColorFromImage(img) {
+    const c = document.createElement('canvas');
+    const w = c.width = 80;
+    const h = c.height = Math.max(1, Math.round(80 * (img.naturalHeight / img.naturalWidth)));
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 16) continue;
+      r += data[i]; g += data[i + 1]; b += data[i + 2];
+      n++;
+    }
+    if (n === 0) n = 1;
+    return [Math.round(r / n), Math.round(g / n), Math.round(b / n)];
+  }
+
+  function renderSwatchList() {
+    const wrap = document.getElementById('swatchList');
+    wrap.innerHTML = '';
+    if (palette.length === 0) {
+      wrap.innerHTML = '<div class="empty-note">No swatches yet. Upload a case photo above.</div>';
+      return;
+    }
+    palette.forEach((sw, idx) => {
+      const row = document.createElement('div');
+      row.className = 'swatch-row';
+      row.innerHTML = `
+        <div class="swatch-chip" style="background:${rgbStr(sw.color)}"></div>
+        <div class="swatch-name">${escapeHtml(sw.name)}</div>
+        <div class="swatch-rgb">${rgbHex(sw.color)}</div>
+        <button class="danger-btn" data-idx="${idx}">remove</button>
+      `;
+      wrap.appendChild(row);
+    });
+    wrap.querySelectorAll('button[data-idx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        palette.splice(parseInt(btn.dataset.idx, 10), 1);
+        savePalette();
+        renderSwatchList();
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  document.getElementById('addSwatchBtn').addEventListener('click', () => {
+    const fileInput = document.getElementById('swatchImg');
+    const nameInput = document.getElementById('swatchName');
+    const name = nameInput.value.trim();
+    if (!fileInput.files[0]) { alert('Choose a case photo first.'); return; }
+    if (!name) { alert('Enter a variant name.'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const color = averageColorFromImage(img);
+        palette.push({ name, color });
+        savePalette();
+        renderSwatchList();
+        fileInput.value = '';
+        nameInput.value = '';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+  });
+
+  document.getElementById('clearPaletteBtn').addEventListener('click', () => {
+    if (palette.length === 0) return;
+    if (!confirm('Clear the entire palette?')) return;
+    palette = [];
+    savePalette();
+    renderSwatchList();
+  });
+
+  document.getElementById('targetImg').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        targetImage = img;
+        const canvas = document.getElementById('targetPreview');
+        const maxW = 300, maxH = 240;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        const scale = Math.min(maxW / w, maxH / h, 1);
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        if (document.getElementById('lockAspect').checked) {
+          syncRowsToAspect();
+        }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function syncRowsToAspect() {
+    if (!targetImage) return;
+    const cols = parseInt(document.getElementById('cols').value, 10) || 24;
+    const ratio = targetImage.naturalHeight / targetImage.naturalWidth;
+    const rows = Math.max(2, Math.round(cols * ratio));
+    document.getElementById('rows').value = rows;
+  }
+
+  document.getElementById('cols').addEventListener('input', () => {
+    if (document.getElementById('lockAspect').checked) syncRowsToAspect();
+  });
+  document.getElementById('lockAspect').addEventListener('change', (e) => {
+    document.getElementById('rows').disabled = e.target.checked;
+    if (e.target.checked) syncRowsToAspect();
+  });
+  document.getElementById('rows').disabled = document.getElementById('lockAspect').checked;
+
+  function nearestSwatch(rgb) {
+    let best = null, bestDist = Infinity;
+    for (const sw of palette) {
+      const dr = rgb[0] - sw.color[0], dg = rgb[1] - sw.color[1], db = rgb[2] - sw.color[2];
+      const dist = dr * dr + dg * dg + db * db;
+      if (dist < bestDist) { bestDist = dist; best = sw; }
+    }
+    return best;
+  }
+
+  document.getElementById('convertBtn').addEventListener('click', () => {
+    if (!targetImage) { alert('Upload a target image first.'); return; }
+    if (palette.length === 0) { alert('Add at least one palette swatch first.'); return; }
+
+    const cols = Math.max(2, Math.min(120, parseInt(document.getElementById('cols').value, 10) || 24));
+    const rows = Math.max(2, Math.min(120, parseInt(document.getElementById('rows').value, 10) || 16));
+
+    const sample = document.createElement('canvas');
+    sample.width = cols;
+    sample.height = rows;
+    const sctx = sample.getContext('2d');
+    sctx.imageSmoothingEnabled = true;
+    sctx.drawImage(targetImage, 0, 0, cols, rows);
+    const data = sctx.getImageData(0, 0, cols, rows).data;
+
+    const grid = [];
+    for (let r = 0; r < rows; r++) {
+      const rowArr = [];
+      for (let c = 0; c < cols; c++) {
+        const i = (r * cols + c) * 4;
+        const rgb = [data[i], data[i + 1], data[i + 2]];
+        const match = nearestSwatch(rgb);
+        rowArr.push(match);
+      }
+      grid.push(rowArr);
+    }
+    lastGrid = { cols, rows, grid };
+
+    renderMosaic(grid, cols, rows);
+    renderSchematic(grid, cols, rows);
+    renderSummary(grid);
+    document.getElementById('outputPanel').style.display = 'block';
+  });
+
+  function renderMosaic(grid, cols, rows) {
+    const wrap = document.getElementById('mosaicWrap');
+    wrap.innerHTML = '<canvas id="mosaicCanvas"></canvas>';
+    const cell = 20;
+    const canvas = document.getElementById('mosaicCanvas');
+    canvas.width = cols * cell;
+    canvas.height = rows * cell;
+    const ctx = canvas.getContext('2d');
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const sw = grid[r][c];
+        ctx.fillStyle = sw ? rgbStr(sw.color) : '#000';
+        ctx.fillRect(c * cell, r * cell, cell, cell);
+      }
+    }
+  }
+
+  function initials(name) {
+    return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3);
+  }
+
+  function renderSchematic(grid, cols, rows) {
+    document.getElementById('gridStat').textContent =
+      `${cols} columns x ${rows} rows = ${cols * rows} cases total`;
+    const wrap = document.getElementById('gridSchematicWrap');
+    wrap.innerHTML = '';
+    const gridEl = document.createElement('div');
+    gridEl.className = 'grid-schematic';
+    gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    gridEl.style.maxWidth = '520px';
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const sw = grid[r][c];
+        const cellEl = document.createElement('div');
+        cellEl.className = 'grid-cell';
+        cellEl.style.background = sw ? rgbStr(sw.color) : '#000';
+        cellEl.title = `Row ${r + 1}, Col ${c + 1}: ${sw ? sw.name : 'unmatched'}`;
+        cellEl.textContent = sw ? initials(sw.name) : '?';
+        gridEl.appendChild(cellEl);
+      }
+    }
+    wrap.appendChild(gridEl);
+  }
+
+  function renderSummary(grid) {
+    const counts = new Map();
+    grid.forEach(row => row.forEach(sw => {
+      if (!sw) return;
+      counts.set(sw.name, (counts.get(sw.name) || 0) + 1);
+    }));
+    const total = [...counts.values()].reduce((a, b) => a + b, 0);
+    const table = document.getElementById('summaryTable');
+    let html = '<tr><th>Variant</th><th>Cases needed</th><th>% of build</th></tr>';
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    for (const [name, count] of sorted) {
+      const sw = palette.find(p => p.name === name);
+      const pct = total ? ((count / total) * 100).toFixed(1) : '0.0';
+      html += `<tr><td><span class="count-chip" style="background:${sw ? rgbStr(sw.color) : '#000'}"></span>${escapeHtml(name)}</td><td>${count}</td><td>${pct}%</td></tr>`;
+    }
+    html += `<tr><td><strong>Total</strong></td><td><strong>${total}</strong></td><td>100.0%</td></tr>`;
+    table.innerHTML = html;
+  }
+
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    if (!lastGrid) return;
+    const { cols, rows, grid } = lastGrid;
+    let csv = 'Build Schematic\n';
+    csv += 'Row,Column,Variant\n';
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const sw = grid[r][c];
+        csv += `${r + 1},${c + 1},"${sw ? sw.name : 'unmatched'}"\n`;
+      }
+    }
+    csv += '\nShopping List\n';
+    csv += 'Variant,Cases Needed\n';
+    const counts = new Map();
+    grid.forEach(row => row.forEach(sw => {
+      if (!sw) return;
+      counts.set(sw.name, (counts.get(sw.name) || 0) + 1);
+    }));
+    [...counts.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
+      csv += `"${name}",${count}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pixelmerch_build_schematic.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  loadPalette();
+  renderSwatchList();
+})();
+</script>
+
+</body>
+</html>
