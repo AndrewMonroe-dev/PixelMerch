@@ -118,7 +118,7 @@
     overflow: hidden;
   }
   .grid-cell {
-    aspect-ratio: 1 / 1;
+    aspect-ratio: var(--cell-ratio, 1 / 1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -162,7 +162,22 @@
     </div>
 
     <div class="panel">
-      <h2>3. Grid Size</h2>
+      <h2>3. Case Size</h2>
+      <div class="row2">
+        <div>
+          <label for="caseWidth">Case face width (in)</label>
+          <input type="number" id="caseWidth" value="4.875" min="0.1" step="0.0625">
+        </div>
+        <div>
+          <label for="caseHeight">Case face height (in)</label>
+          <input type="number" id="caseHeight" value="10.3125" min="0.1" step="0.0625">
+        </div>
+      </div>
+      <div class="stat-line">Default is a standard Bota Box: 4&#8541;&quot; x 10 5/16&quot;. Change if building with a different product.</div>
+    </div>
+
+    <div class="panel">
+      <h2>4. Grid Size</h2>
       <div class="row2">
         <div>
           <label for="cols">Columns</label>
@@ -175,8 +190,9 @@
       </div>
       <div class="checkbox-row">
         <input type="checkbox" id="lockAspect" checked>
-        <label style="margin:0" for="lockAspect">Lock rows to image aspect ratio</label>
+        <label style="margin:0" for="lockAspect">Lock rows to image aspect ratio (accounting for true case proportions)</label>
       </div>
+      <div class="stat-line" id="physicalSizeStat"></div>
       <button id="convertBtn">Convert to mosaic</button>
     </div>
 
@@ -333,22 +349,60 @@
     reader.readAsDataURL(file);
   });
 
+  function getCaseDims() {
+    const w = parseFloat(document.getElementById('caseWidth').value) || 4.875;
+    const h = parseFloat(document.getElementById('caseHeight').value) || 10.3125;
+    return { w, h };
+  }
+
   function syncRowsToAspect() {
     if (!targetImage) return;
     const cols = parseInt(document.getElementById('cols').value, 10) || 24;
-    const ratio = targetImage.naturalHeight / targetImage.naturalWidth;
-    const rows = Math.max(2, Math.round(cols * ratio));
+    const imgRatio = targetImage.naturalHeight / targetImage.naturalWidth;
+    const { w: caseW, h: caseH } = getCaseDims();
+    // rows*caseH / cols*caseW should equal the image's own height/width ratio
+    const rows = Math.max(2, Math.round(cols * imgRatio * (caseW / caseH)));
     document.getElementById('rows').value = rows;
+  }
+
+  function formatFeetInches(inches) {
+    const totalIn = Math.round(inches * 16) / 16; // nearest 1/16"
+    const feet = Math.floor(totalIn / 12);
+    const rem = totalIn - feet * 12;
+    const remRounded = Math.round(rem * 100) / 100;
+    return feet > 0 ? `${feet}' ${remRounded}"` : `${remRounded}"`;
+  }
+
+  function updatePhysicalSizeStat() {
+    const cols = parseInt(document.getElementById('cols').value, 10) || 0;
+    const rows = parseInt(document.getElementById('rows').value, 10) || 0;
+    const { w: caseW, h: caseH } = getCaseDims();
+    const totalW = cols * caseW;
+    const totalH = rows * caseH;
+    document.getElementById('physicalSizeStat').textContent =
+      `Finished display: ${formatFeetInches(totalW)} wide x ${formatFeetInches(totalH)} tall (${cols * rows} cases)`;
   }
 
   document.getElementById('cols').addEventListener('input', () => {
     if (document.getElementById('lockAspect').checked) syncRowsToAspect();
+    updatePhysicalSizeStat();
+  });
+  document.getElementById('rows').addEventListener('input', updatePhysicalSizeStat);
+  document.getElementById('caseWidth').addEventListener('input', () => {
+    if (document.getElementById('lockAspect').checked) syncRowsToAspect();
+    updatePhysicalSizeStat();
+  });
+  document.getElementById('caseHeight').addEventListener('input', () => {
+    if (document.getElementById('lockAspect').checked) syncRowsToAspect();
+    updatePhysicalSizeStat();
   });
   document.getElementById('lockAspect').addEventListener('change', (e) => {
     document.getElementById('rows').disabled = e.target.checked;
     if (e.target.checked) syncRowsToAspect();
+    updatePhysicalSizeStat();
   });
   document.getElementById('rows').disabled = document.getElementById('lockAspect').checked;
+  updatePhysicalSizeStat();
 
   function nearestSwatch(rgb) {
     let best = null, bestDist = Infinity;
@@ -397,16 +451,18 @@
   function renderMosaic(grid, cols, rows) {
     const wrap = document.getElementById('mosaicWrap');
     wrap.innerHTML = '<canvas id="mosaicCanvas"></canvas>';
-    const cell = 20;
+    const { w: caseW, h: caseH } = getCaseDims();
+    const cellW = 18;
+    const cellH = Math.round(cellW * (caseH / caseW));
     const canvas = document.getElementById('mosaicCanvas');
-    canvas.width = cols * cell;
-    canvas.height = rows * cell;
+    canvas.width = cols * cellW;
+    canvas.height = rows * cellH;
     const ctx = canvas.getContext('2d');
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const sw = grid[r][c];
         ctx.fillStyle = sw ? rgbStr(sw.color) : '#000';
-        ctx.fillRect(c * cell, r * cell, cell, cell);
+        ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
       }
     }
   }
@@ -416,13 +472,17 @@
   }
 
   function renderSchematic(grid, cols, rows) {
+    const { w: caseW, h: caseH } = getCaseDims();
+    const totalW = cols * caseW;
+    const totalH = rows * caseH;
     document.getElementById('gridStat').textContent =
-      `${cols} columns x ${rows} rows = ${cols * rows} cases total`;
+      `${cols} columns x ${rows} rows = ${cols * rows} cases total -- finished size ${formatFeetInches(totalW)} wide x ${formatFeetInches(totalH)} tall`;
     const wrap = document.getElementById('gridSchematicWrap');
     wrap.innerHTML = '';
     const gridEl = document.createElement('div');
     gridEl.className = 'grid-schematic';
     gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    gridEl.style.setProperty('--cell-ratio', `${caseW} / ${caseH}`);
     gridEl.style.maxWidth = '520px';
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
