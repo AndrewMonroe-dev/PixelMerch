@@ -173,7 +173,13 @@
           <input type="number" id="caseHeight" value="10.3125" min="0.1" step="0.0625">
         </div>
       </div>
-      <div class="stat-line">Default is a standard Bota Box: 4&#8541;&quot; x 10 5/16&quot;. Change if building with a different product.</div>
+      <div class="stat-line">Default is a standard Bota Box: 4&#8541;&quot; x 10 5/16&quot;. Change if building with a different product. Width/height above are always the box's own upright measurements -- orientation below flips how it sits in the build.</div>
+      <label for="orientation" style="margin-top:10px;">Orientation in the build</label>
+      <select id="orientation">
+        <option value="upright" selected>Upright (standing)</option>
+        <option value="sideways">On its side (lying down)</option>
+      </select>
+      <div class="stat-line">On its side gives a wider, squarer face per case -- closer to a real case-mosaic pixel -- so detailed images need far fewer total units than standing upright.</div>
     </div>
 
     <div class="panel">
@@ -401,7 +407,23 @@
   function getCaseDims() {
     const w = parseFloat(document.getElementById('caseWidth').value) || 4.875;
     const h = parseFloat(document.getElementById('caseHeight').value) || 10.3125;
-    return { w, h };
+    const orientation = document.getElementById('orientation').value;
+    return orientation === 'sideways' ? { w: h, h: w } : { w, h };
+  }
+
+  function rotateImage90(img) {
+    const c = document.createElement('canvas');
+    c.width = img.height;
+    c.height = img.width;
+    const ctx = c.getContext('2d');
+    ctx.translate(c.width / 2, c.height / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+    return c;
+  }
+
+  function imageSrcFor(entry) {
+    return entry instanceof HTMLCanvasElement ? entry.toDataURL() : entry.src;
   }
 
   function syncRowsToAspect() {
@@ -449,6 +471,11 @@
     document.getElementById('rows').disabled = e.target.checked;
     if (e.target.checked) syncRowsToAspect();
     updatePhysicalSizeStat();
+  });
+  document.getElementById('orientation').addEventListener('change', () => {
+    if (document.getElementById('lockAspect').checked) syncRowsToAspect();
+    updatePhysicalSizeStat();
+    renderSwatchList();
   });
   document.getElementById('rows').disabled = document.getElementById('lockAspect').checked;
   updatePhysicalSizeStat();
@@ -526,9 +553,12 @@
 
     const usedNames = [...new Set(grid.flat().filter(Boolean).map(sw => sw.name))];
     const imgMap = await preloadImages(usedNames);
+    if (document.getElementById('orientation').value === 'sideways') {
+      for (const [name, img] of imgMap) imgMap.set(name, rotateImage90(img));
+    }
 
     renderMosaic(grid, cols, rows, imgMap);
-    renderSchematic(grid, cols, rows);
+    renderSchematic(grid, cols, rows, imgMap);
     renderSummary(grid);
     document.getElementById('outputPanel').style.display = 'block';
   });
@@ -562,7 +592,7 @@
     return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3);
   }
 
-  function renderSchematic(grid, cols, rows) {
+  function renderSchematic(grid, cols, rows, imgMap) {
     const { w: caseW, h: caseH } = getCaseDims();
     const totalW = cols * caseW;
     const totalH = rows * caseH;
@@ -581,9 +611,10 @@
         const cellEl = document.createElement('div');
         cellEl.className = 'grid-cell';
         cellEl.title = `Row ${r + 1}, Col ${c + 1}: ${sw ? sw.name : 'unmatched'}`;
-        if (sw && sw.thumb) {
+        const entry = sw ? imgMap.get(sw.name) : null;
+        if (sw && (entry || sw.thumb)) {
           const imgEl = document.createElement('img');
-          imgEl.src = sw.thumb;
+          imgEl.src = entry ? imageSrcFor(entry) : sw.thumb;
           imgEl.alt = sw.name;
           imgEl.style.width = '100%';
           imgEl.style.height = '100%';
