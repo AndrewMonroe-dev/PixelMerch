@@ -14,7 +14,6 @@
     --muted: #9aa1ac;
     --accent: #4f8cff;
     --accent2: #35c98c;
-    --danger: #e5534b;
     --mono: 'Consolas', 'Menlo', monospace;
   }
   * { box-sizing: border-box; }
@@ -26,7 +25,7 @@
     padding: 24px;
   }
   h1 { font-size: 22px; margin: 0 0 4px; }
-  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; max-width: 640px; }
   .layout {
     display: grid;
     grid-template-columns: 340px 1fr;
@@ -49,7 +48,7 @@
     margin: 0 0 12px;
   }
   label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  input[type=text], input[type=number] {
+  input[type=text], input[type=number], select {
     width: 100%;
     background: var(--panel2);
     border: 1px solid var(--border);
@@ -60,6 +59,21 @@
     margin-bottom: 10px;
   }
   input[type=file] { font-size: 12px; color: var(--muted); margin-bottom: 10px; width: 100%; }
+  input[type=text]#wordInput { font-family: var(--mono); font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+  input[type=color] {
+    -webkit-appearance: none; appearance: none;
+    width: 44px; height: 34px; padding: 0; border: 1px solid var(--border); border-radius: 6px;
+    background: none; cursor: pointer;
+  }
+  .color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .color-row input[type=text] { margin-bottom: 0; font-family: var(--mono); text-transform: uppercase; }
+  .row2 { display: flex; gap: 10px; }
+  .row2 > div { flex: 1; }
+  .stat-line { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .stat-line b { color: var(--text); }
+  .note { font-size: 11px; color: var(--muted); margin-top: -4px; margin-bottom: 12px; line-height: 1.5; }
+  .checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .checkbox-row input { margin: 0; }
   button {
     background: var(--accent);
     color: #fff;
@@ -71,72 +85,66 @@
     font-weight: 600;
   }
   button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
-  button.danger-btn { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 3px 8px; font-size: 11px; }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-  .swatch-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; max-height: 320px; overflow-y: auto; }
+  button.danger-btn { background: transparent; color: #e5534b; border: 1px solid #e5534b; padding: 3px 8px; font-size: 11px; }
+  .toolbar { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .swatch-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; max-height: 260px; overflow-y: auto; }
   .swatch-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--panel2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 8px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
   }
-  .swatch-chip { width: 22px; height: 22px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; }
+  .swatch-chip { width: 24px; height: 24px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; background-size: cover; background-position: center; }
   .swatch-name { flex: 1; font-size: 12px; }
   .swatch-rgb { font-family: var(--mono); font-size: 10px; color: var(--muted); }
   .empty-note { color: var(--muted); font-size: 12px; font-style: italic; }
-  .row2 { display: flex; gap: 10px; }
-  .row2 > div { flex: 1; }
-  .checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
-  .checkbox-row input { margin: 0; }
+  .letter-colors { display: flex; flex-wrap: wrap; gap: 8px; }
+  .letter-color-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 46px; }
+  .letter-color-cell .ch { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .letter-color-cell select { width: 100%; padding: 3px 2px; font-size: 11px; margin: 0; }
+  .letter-color-cell .chip { width: 100%; height: 14px; border-radius: 3px; border: 1px solid var(--border); }
+  .grid-schematic {
+    display: flex;
+    align-items: flex-end; /* bottom-anchored -- shorter columns fall short at the top, gravity-style */
+    gap: 2px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+    overflow: auto;
+    max-width: 100%;
+  }
+  .grid-col { display: flex; flex-direction: column; width: 14px; flex-shrink: 0; }
+  .grid-cell { cursor: pointer; box-sizing: border-box; border: 1px solid rgba(0,0,0,0.45); }
+  .grid-cell:hover { outline: 2px solid rgba(255,255,255,0.6); outline-offset: -2px; }
+  .grid-cell.overridden { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.55); }
+  .grid-cell.reoriented { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
+  .grid-cell.removed { background: transparent !important; border: 1px dashed rgba(255,255,255,0.3); }
+  .grid-cell.removed:hover { outline-color: rgba(229,83,75,0.7); }
+  .placeholder-box {
+    display: flex; align-items: center; justify-content: center;
+    height: 160px; border: 1px dashed var(--border); border-radius: 8px;
+    color: var(--muted); font-size: 13px; text-align: center; padding: 20px;
+  }
+  .badge { display: inline-block; background: var(--accent2); color: #06281a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+  .warn { color: #e5c15a; }
+  .mode-tabs { display: flex; gap: 8px; margin-bottom: 4px; }
+  .mode-tabs label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; cursor: pointer; margin: 0; flex: 1; justify-content: center; }
+  .mode-tabs input { width: auto; margin: 0; }
   canvas#targetPreview, canvas#mosaicCanvas {
     max-width: 100%;
     border: 1px solid var(--border);
     border-radius: 6px;
     background: repeating-conic-gradient(#20242c 0% 25%, #191c22 0% 50%) 50% / 16px 16px;
   }
-  .output-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 1200px) { .output-grid { grid-template-columns: 1fr; } }
-  table.summary { width: 100%; border-collapse: collapse; font-size: 12px; }
-  table.summary th, table.summary td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
-  table.summary th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.03em; }
-  .count-chip { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.15); }
-  .toolbar { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
-  .placeholder-box {
-    display: flex; align-items: center; justify-content: center;
-    height: 180px; border: 1px dashed var(--border); border-radius: 8px;
-    color: var(--muted); font-size: 13px; text-align: center; padding: 20px;
-  }
-  .grid-schematic {
-    display: grid;
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  .grid-cell {
-    aspect-ratio: var(--cell-ratio, 1 / 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    color: rgba(0,0,0,0.55);
-    font-family: var(--mono);
-    text-align: center;
-    overflow: hidden;
-    line-height: 1;
-  }
-  .stat-line { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .badge { display: inline-block; background: var(--accent2); color: #06281a; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+  table.summary { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+  table.summary th, table.summary td { text-align: left; padding: 5px 7px; border-bottom: 1px solid var(--border); }
+  table.summary th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 10px; }
+  .count-chip { width: 11px; height: 11px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.15); }
 </style>
 </head>
 <body>
 
 <h1>PixelMerch</h1>
-<div class="sub">Turn any picture into a case-mosaic build schematic. Upload a photo of each product's case face to build a color palette, upload a target image, set a grid size, and convert. Everything runs locally in this browser -- nothing is uploaded anywhere.</div>
+<div class="sub">Case-mosaic signage builder. Type a word, color each letter from real product-photo swatches (or one flat color), and it lays out a build using a fixed pixel font sized to never exceed 6 boxes tall &mdash; every case shown upright at its real face dimensions. Everything runs locally in this browser &mdash; nothing is uploaded anywhere.</div>
 
 <div class="layout">
   <div class="left-col">
@@ -155,10 +163,66 @@
     </div>
 
     <div class="panel">
-      <h2>2. Target Image</h2>
+      <h2>2. Build Source</h2>
+      <div class="mode-tabs">
+        <label><input type="radio" name="buildMode" value="text" id="modeTextRadio" checked> Text</label>
+        <label><input type="radio" name="buildMode" value="image" id="modeImageRadio"> Image</label>
+      </div>
+      <div class="note" style="margin-bottom:0;">Text spells a word/phrase out of cases. Image converts any picture you upload into a case-mosaic, matching each region to your closest palette color.</div>
+    </div>
+
+    <div class="panel" id="imageModePanel" style="display:none;">
+      <h2>2a. Target Image</h2>
       <label for="targetImg">Image to convert</label>
       <input type="file" id="targetImg" accept="image/*">
       <canvas id="targetPreview" width="300" height="200"></canvas>
+      <div class="row2" style="margin-top:10px;">
+        <div>
+          <label for="imgCols">Columns</label>
+          <input type="number" id="imgCols" value="24" min="2" max="120">
+        </div>
+        <div>
+          <label for="imgRows">Rows</label>
+          <input type="number" id="imgRows" value="16" min="2" max="120">
+        </div>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="lockAspect" checked>
+        <label style="margin:0" for="lockAspect">Lock rows to image aspect ratio (accounting for true case proportions)</label>
+      </div>
+      <div class="note" id="imgPhysicalSizeStat" style="margin-bottom:12px;"></div>
+      <button id="convertBtn">Convert to mosaic</button>
+    </div>
+
+    <div class="panel" id="textModePanel">
+      <h2>2b. Text</h2>
+      <label for="wordInput">Word or short phrase</label>
+      <input type="text" id="wordInput" value="SUMMER" maxlength="24" autocomplete="off">
+      <div class="note">Letters A&ndash;Z and numbers 0&ndash;9 supported. A space between words adds a narrow gap.</div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="usePalette">
+        <label style="margin:0" for="usePalette">Color letters from the palette above (multi-color)</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="usePhotos">
+        <label style="margin:0" for="usePhotos">Fill boxes with the real case photo instead of a flat color</label>
+      </div>
+      <div class="note">Uses whatever photo you uploaded for that variant, cropped to fill each box. Swatches with no photo (flat-color-only) still show as a plain color.</div>
+
+      <div id="soloColorWrap">
+        <label>Letter color</label>
+        <div class="color-row">
+          <input type="color" id="colorPicker" value="#b0342a">
+          <input type="text" id="colorHex" value="#B0342A" maxlength="7">
+        </div>
+        <label>Background color</label>
+        <div class="color-row">
+          <input type="color" id="bgColorPicker" value="#f2e8d5">
+          <input type="text" id="bgColorHex" value="#F2E8D5" maxlength="7">
+        </div>
+        <div class="note">Every case in the build is one of these two colors &mdash; the letter shape reads through the contrast between them, not through any blank/empty boxes.</div>
+      </div>
     </div>
 
     <div class="panel">
@@ -170,61 +234,92 @@
         </div>
         <div>
           <label for="caseHeight">Case face height (in)</label>
-          <input type="number" id="caseHeight" value="10.3125" min="0.1" step="0.0625">
+          <input type="number" id="caseHeight" value="10.375" min="0.1" step="0.0625">
         </div>
       </div>
-      <div class="stat-line">Default is a standard Bota Box: 4&#8541;&quot; x 10 5/16&quot;. Change if building with a different product. Width/height above are always the box's own upright measurements -- orientation below flips how it sits in the build.</div>
-      <label for="orientation" style="margin-top:10px;">Orientation in the build</label>
-      <select id="orientation">
-        <option value="upright" selected>Upright (standing)</option>
-        <option value="sideways">On its side (lying down)</option>
-      </select>
-      <div class="stat-line">On its side gives a wider, squarer face per case -- closer to a real case-mosaic pixel -- so detailed images need far fewer total units than standing upright.</div>
+      <div class="note">Default is a standard Bota Box: 4&#8541;&quot; x 10&#8323;&#8260;&#8321;&#8326;&quot;.</div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="sideways">
+        <label style="margin:0" for="sideways">Lay cases on their side (top face only, square box)</label>
+      </div>
+      <div class="note" id="sidewaysNote">Off by default &mdash; upright, using the width x height above. When checked, each case shows only its top face as a square (width x width), ignoring the height value.</div>
     </div>
 
-    <div class="panel">
-      <h2>4. Grid Size</h2>
+    <div class="panel" id="pixelResPanel">
+      <h2>4. Pixel Resolution</h2>
       <div class="row2">
         <div>
-          <label for="cols">Columns</label>
-          <input type="number" id="cols" value="24" min="2" max="120">
+          <label for="letterRows">Height (boxes tall)</label>
+          <input type="number" id="letterRows" value="6" min="3" max="24">
         </div>
         <div>
-          <label for="rows">Rows</label>
-          <input type="number" id="rows" value="16" min="2" max="120">
+          <label for="letterCols">Letter width (boxes)</label>
+          <input type="number" id="letterCols" value="5" min="3" max="24">
         </div>
       </div>
-      <div class="checkbox-row">
-        <input type="checkbox" id="lockAspect" checked>
-        <label style="margin:0" for="lockAspect">Lock rows to image aspect ratio (accounting for true case proportions)</label>
+      <div class="note">Each letter is rasterized live at this resolution &mdash; taller/wider settings pick up more detail, smaller settings get blockier. Total build width still grows with however long the word is.</div>
+    </div>
+
+    <div class="panel" id="canvasSizePanel">
+      <h2>5. Canvas Size</h2>
+      <div class="row2">
+        <div>
+          <label for="padTop">Extra rows: top</label>
+          <input type="number" id="padTop" value="0" min="0" max="60">
+        </div>
+        <div>
+          <label for="padBottom">Extra rows: bottom</label>
+          <input type="number" id="padBottom" value="0" min="0" max="60">
+        </div>
       </div>
-      <div class="stat-line" id="physicalSizeStat"></div>
-      <button id="convertBtn">Convert to mosaic</button>
+      <div class="row2">
+        <div>
+          <label for="padLeft">Extra columns: left</label>
+          <input type="number" id="padLeft" value="0" min="0" max="60">
+        </div>
+        <div>
+          <label for="padRight">Extra columns: right</label>
+          <input type="number" id="padRight" value="0" min="0" max="60">
+        </div>
+      </div>
+      <div class="note">Adds blank canvas around the generated text so you can freehand-place or remove cases beyond the letters &mdash; a border, extra decoration, whatever. Blank cells start as background color; use the Color and Place/Remove edit modes below to build on them.</div>
     </div>
 
   </div>
 
   <div class="right-col">
-    <div class="panel">
-      <h2>Mosaic Preview</h2>
-      <div id="mosaicWrap">
-        <div class="placeholder-box">Add at least one palette swatch and a target image, then click Convert.</div>
-      </div>
+    <div class="panel" id="letterColorsPanel" style="display:none;">
+      <h2>Letter &amp; Background Colors</h2>
+      <label for="bgSwatchSelect">Background (fills every non-letter box)</label>
+      <select id="bgSwatchSelect"></select>
+      <label style="margin-top:6px;">Letters</label>
+      <div class="letter-colors" id="letterColorsWrap"></div>
+      <div class="note" style="margin-top:10px;">Every box in the build is one of these palette colors &mdash; there are no blank/empty boxes. Each letter defaults to cycling through your palette in order &mdash; change any of them individually above.</div>
     </div>
 
-    <div class="panel" id="outputPanel" style="display:none;">
-      <h2>Build Schematic + Shopping List</h2>
-      <div class="output-grid">
-        <div>
-          <div class="stat-line" id="gridStat"></div>
-          <div id="gridSchematicWrap" style="margin-top:8px;"></div>
-        </div>
-        <div>
-          <table class="summary" id="summaryTable"></table>
+    <div class="panel">
+      <h2>Mosaic Preview</h2>
+      <div id="mosaicPreviewWrap" style="display:none;">
+        <div id="mosaicWrap"></div>
+        <div class="toolbar">
+          <button id="downloadPngBtn">Download picture (PNG)</button>
         </div>
       </div>
+
+      <div class="toolbar" id="editModeToolbar" style="margin-top:0;">
+        <button id="editModeColorBtn">&#x1F3A8; Click to edit: Color</button>
+        <button class="secondary" id="editModeOrientBtn">&#x1F4D0; Click to edit: Orientation</button>
+        <button class="secondary" id="editModeRemoveBtn">&#x1F573; Click to edit: Place/Remove</button>
+      </div>
+      <div id="previewWrap">
+        <div class="placeholder-box">Type a word on the left to generate a build.</div>
+      </div>
+      <div class="stat-line" id="gridStat"></div>
+      <div class="note" id="editModeNote" style="margin-top:8px;">Click any box in the preview to cycle it through your available colors, overriding the auto letter/background assignment for just that one case. Boxes with a manual override get a highlighted edge.</div>
+      <table class="summary" id="summaryTable" style="display:none;"></table>
       <div class="toolbar">
-        <button id="exportCsvBtn">Export CSV</button>
+        <button id="exportCsvBtn" disabled>Export case list (CSV)</button>
+        <button class="secondary" id="resetOverridesBtn">Reset manual edits</button>
       </div>
     </div>
   </div>
@@ -232,10 +327,10 @@
 
 <script>
 (function () {
+  // ── Palette (case photo -> sampled average color), same storage key/shape
+  // as the earlier photomosaic build so any swatches already saved carry over.
   const STORAGE_KEY = 'pixelmerch_palette_v1';
   let palette = [];
-  let targetImage = null;
-  let lastGrid = null;
 
   function loadPalette() {
     try {
@@ -250,52 +345,20 @@
       alert('Could not save the palette to local storage (likely too many/too large photos). Consider removing a swatch.');
     }
   }
-
   function rgbStr(rgb) { return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`; }
-  function rgbHex(rgb) {
-    return '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
+  function rgbHex(rgb) { return '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join(''); }
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
-
   function makeThumbnailDataUrl(img, maxDim) {
     const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
     const w = Math.max(1, Math.round(img.naturalWidth * scale));
     const h = Math.max(1, Math.round(img.naturalHeight * scale));
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
-    const ctx = c.getContext('2d');
-    ctx.drawImage(img, 0, 0, w, h);
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
     return c.toDataURL('image/jpeg', 0.85);
   }
-
-  function drawImageCover(ctx, img, x, y, w, h) {
-    const imgRatio = img.width / img.height;
-    const boxRatio = w / h;
-    let sx, sy, sw, sh;
-    if (imgRatio > boxRatio) {
-      sh = img.height;
-      sw = sh * boxRatio;
-      sx = (img.width - sw) / 2;
-      sy = 0;
-    } else {
-      sw = img.width;
-      sh = sw / boxRatio;
-      sx = 0;
-      sy = (img.height - sh) / 2;
-    }
-    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-  }
-
-  function preloadImages(names) {
-    return Promise.all(names.map(name => new Promise(resolve => {
-      const sw = palette.find(p => p.name === name);
-      if (!sw || !sw.thumb) { resolve([name, null]); return; }
-      const img = new Image();
-      img.onload = () => resolve([name, img]);
-      img.onerror = () => resolve([name, null]);
-      img.src = sw.thumb;
-    }))).then(pairs => new Map(pairs.filter(p => p[1])));
-  }
-
   function averageColorFromImage(img) {
     const c = document.createElement('canvas');
     const w = c.width = 80;
@@ -320,13 +383,10 @@
       wrap.innerHTML = '<div class="empty-note">No swatches yet. Upload a case photo above.</div>';
       return;
     }
-    const { w: caseW, h: caseH } = getCaseDims();
     palette.forEach((sw, idx) => {
       const row = document.createElement('div');
       row.className = 'swatch-row';
-      const chipStyle = sw.thumb
-        ? `background-image:url('${sw.thumb}');background-size:cover;background-position:center;aspect-ratio:${caseW}/${caseH};width:auto;height:28px;`
-        : `background:${rgbStr(sw.color)};aspect-ratio:${caseW}/${caseH};width:auto;height:28px;`;
+      const chipStyle = sw.thumb ? `background-image:url('${sw.thumb}');` : `background:${rgbStr(sw.color)};`;
       row.innerHTML = `
         <div class="swatch-chip" style="${chipStyle}"></div>
         <div class="swatch-name">${escapeHtml(sw.name)}</div>
@@ -340,12 +400,9 @@
         palette.splice(parseInt(btn.dataset.idx, 10), 1);
         savePalette();
         renderSwatchList();
+        render();
       });
     });
-  }
-
-  function escapeHtml(s) {
-    return s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
   document.getElementById('addSwatchBtn').addEventListener('click', () => {
@@ -365,6 +422,7 @@
         renderSwatchList();
         fileInput.value = '';
         nameInput.value = '';
+        render();
       };
       img.src = e.target.result;
     };
@@ -377,109 +435,124 @@
     palette = [];
     savePalette();
     renderSwatchList();
+    render();
   });
 
-  document.getElementById('targetImg').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        targetImage = img;
-        const canvas = document.getElementById('targetPreview');
-        const maxW = 300, maxH = 240;
-        let w = img.naturalWidth, h = img.naturalHeight;
-        const scale = Math.min(maxW / w, maxH / h, 1);
-        canvas.width = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        if (document.getElementById('lockAspect').checked) {
-          syncRowsToAspect();
-        }
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-
-  function getCaseDims() {
-    const w = parseFloat(document.getElementById('caseWidth').value) || 4.875;
-    const h = parseFloat(document.getElementById('caseHeight').value) || 10.3125;
-    const orientation = document.getElementById('orientation').value;
-    return orientation === 'sideways' ? { w: h, h: w } : { w, h };
+  // ── Base 5-wide x 6-tall hand-built block font (the exact one already
+  // tested and confirmed clean). Any other resolution is produced by
+  // nearest-neighbor scaling this base grid -- deterministic pixel math,
+  // not font-rendering-and-threshold guesswork that can't be verified
+  // without a browser to preview it in.
+  const BASE_FONT = {
+    A: ['01110','10001','10001','11111','10001','10001'],
+    B: ['11110','10001','11110','10001','10001','11110'],
+    C: ['01111','10000','10000','10000','10000','01111'],
+    D: ['11110','10001','10001','10001','10001','11110'],
+    E: ['11111','10000','11110','10000','10000','11111'],
+    F: ['11111','10000','11110','10000','10000','10000'],
+    G: ['01111','10000','10000','10011','10001','01111'],
+    H: ['10001','10001','11111','10001','10001','10001'],
+    I: ['11111','00100','00100','00100','00100','11111'],
+    J: ['00111','00010','00010','00010','10010','01100'],
+    K: ['10001','10010','11100','10010','10001','10001'],
+    L: ['10000','10000','10000','10000','10000','11111'],
+    M: ['10001','11011','10101','10001','10001','10001'],
+    N: ['10001','11001','10101','10011','10001','10001'],
+    O: ['01110','10001','10001','10001','10001','01110'],
+    P: ['11110','10001','10001','11110','10000','10000'],
+    Q: ['01110','10001','10001','10101','10010','01101'],
+    R: ['11110','10001','11110','10100','10010','10001'],
+    S: ['11111','10000','10000','11111','00001','11111'],
+    T: ['11111','00100','00100','00100','00100','00100'],
+    U: ['10001','10001','10001','10001','10001','01110'],
+    V: ['10001','10001','10001','10001','01010','00100'],
+    W: ['10001','10001','10001','10101','11011','10001'],
+    X: ['10001','10001','01010','00100','01010','10001'],
+    Y: ['10001','10001','01010','00100','00100','00100'],
+    Z: ['11111','00010','00100','01000','10000','11111'],
+    '0': ['01110','10001','10001','10001','10001','01110'],
+    '1': ['00100','01100','00100','00100','00100','01110'],
+    '2': ['01110','10001','00010','00100','01000','11111'],
+    '3': ['11110','00001','00110','00001','00001','11110'],
+    '4': ['00010','00110','01010','10010','11111','00010'],
+    '5': ['11111','10000','11110','00001','00001','11110'],
+    '6': ['00110','01000','10000','11110','10001','01110'],
+    '7': ['11111','00001','00010','00100','01000','01000'],
+    '8': ['01110','10001','01110','10001','10001','01110'],
+    '9': ['01110','10001','01111','00001','00010','01100']
+  };
+  const glyphCache = new Map();
+  function glyphBitmap(ch, rows, cols) {
+    const key = ch + '|' + rows + '|' + cols;
+    if (glyphCache.has(key)) return glyphCache.get(key);
+    const base = BASE_FONT[ch];
+    if (!base) return null;
+    const baseRows = base.length, baseCols = base[0].length;
+    const grid = [];
+    for (let r = 0; r < rows; r++) {
+      // Sample from the center of each output cell's span, not its start --
+      // sampling from the start systematically undershoots and never reaches
+      // the last source row/column when scaling down (e.g. 6 rows -> 5 rows
+      // would drop the bottom row of every letter entirely).
+      const br = Math.min(baseRows - 1, Math.floor((r + 0.5) * baseRows / rows));
+      let row = '';
+      for (let c = 0; c < cols; c++) {
+        const bc = Math.min(baseCols - 1, Math.floor((c + 0.5) * baseCols / cols));
+        row += base[br][bc];
+      }
+      grid.push(row);
+    }
+    glyphCache.set(key, grid);
+    return grid;
   }
 
+  const LETTER_GAP = 1;   // blank columns between letters
+  const SPACE_WIDTH = 3;  // blank columns for a space between words
+
+  let buildMode = 'text'; // 'text' | 'image'
+  let targetImage = null;
+  let lastImageGrid = null; // { cols, rows, grid } from the last Convert click, image mode
+
+  function updateModeVisibility() {
+    const isImage = buildMode === 'image';
+    document.getElementById('imageModePanel').style.display = isImage ? 'block' : 'none';
+    document.getElementById('textModePanel').style.display = isImage ? 'none' : 'block';
+    document.getElementById('pixelResPanel').style.display = isImage ? 'none' : 'block';
+    document.getElementById('canvasSizePanel').style.display = isImage ? 'none' : 'block';
+  }
+  document.getElementById('modeTextRadio').addEventListener('change', () => { buildMode = 'text'; updateModeVisibility(); render(); });
+  document.getElementById('modeImageRadio').addEventListener('change', () => { buildMode = 'image'; updateModeVisibility(); render(); });
+
+  function drawImageCover(ctx, img, x, y, w, h) {
+    const imgRatio = img.width / img.height;
+    const boxRatio = w / h;
+    let sx, sy, sw, sh;
+    if (imgRatio > boxRatio) {
+      sh = img.height; sw = sh * boxRatio; sx = (img.width - sw) / 2; sy = 0;
+    } else {
+      sw = img.width; sh = sw / boxRatio; sx = 0; sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  }
+  function preloadImages(names) {
+    return Promise.all(names.map(name => new Promise(resolve => {
+      const sw = palette.find(p => p.name === name);
+      if (!sw || !sw.thumb) { resolve([name, null]); return; }
+      const img = new Image();
+      img.onload = () => resolve([name, img]);
+      img.onerror = () => resolve([name, null]);
+      img.src = sw.thumb;
+    }))).then(pairs => new Map(pairs.filter(p => p[1])));
+  }
   function rotateImage90(img) {
     const c = document.createElement('canvas');
-    c.width = img.height;
-    c.height = img.width;
+    c.width = img.height; c.height = img.width;
     const ctx = c.getContext('2d');
     ctx.translate(c.width / 2, c.height / 2);
     ctx.rotate(Math.PI / 2);
     ctx.drawImage(img, -img.width / 2, -img.height / 2);
     return c;
   }
-
-  function imageSrcFor(entry) {
-    return entry instanceof HTMLCanvasElement ? entry.toDataURL() : entry.src;
-  }
-
-  function syncRowsToAspect() {
-    if (!targetImage) return;
-    const cols = parseInt(document.getElementById('cols').value, 10) || 24;
-    const imgRatio = targetImage.naturalHeight / targetImage.naturalWidth;
-    const { w: caseW, h: caseH } = getCaseDims();
-    // rows*caseH / cols*caseW should equal the image's own height/width ratio
-    const rows = Math.max(2, Math.round(cols * imgRatio * (caseW / caseH)));
-    document.getElementById('rows').value = rows;
-  }
-
-  function formatFeetInches(inches) {
-    const totalIn = Math.round(inches * 16) / 16; // nearest 1/16"
-    const feet = Math.floor(totalIn / 12);
-    const rem = totalIn - feet * 12;
-    const remRounded = Math.round(rem * 100) / 100;
-    return feet > 0 ? `${feet}' ${remRounded}"` : `${remRounded}"`;
-  }
-
-  function updatePhysicalSizeStat() {
-    const cols = parseInt(document.getElementById('cols').value, 10) || 0;
-    const rows = parseInt(document.getElementById('rows').value, 10) || 0;
-    const { w: caseW, h: caseH } = getCaseDims();
-    const totalW = cols * caseW;
-    const totalH = rows * caseH;
-    document.getElementById('physicalSizeStat').textContent =
-      `Finished display: ${formatFeetInches(totalW)} wide x ${formatFeetInches(totalH)} tall (${cols * rows} cases)`;
-  }
-
-  document.getElementById('cols').addEventListener('input', () => {
-    if (document.getElementById('lockAspect').checked) syncRowsToAspect();
-    updatePhysicalSizeStat();
-  });
-  document.getElementById('rows').addEventListener('input', updatePhysicalSizeStat);
-  document.getElementById('caseWidth').addEventListener('input', () => {
-    if (document.getElementById('lockAspect').checked) syncRowsToAspect();
-    updatePhysicalSizeStat();
-  });
-  document.getElementById('caseHeight').addEventListener('input', () => {
-    if (document.getElementById('lockAspect').checked) syncRowsToAspect();
-    updatePhysicalSizeStat();
-  });
-  document.getElementById('lockAspect').addEventListener('change', (e) => {
-    document.getElementById('rows').disabled = e.target.checked;
-    if (e.target.checked) syncRowsToAspect();
-    updatePhysicalSizeStat();
-  });
-  document.getElementById('orientation').addEventListener('change', () => {
-    if (document.getElementById('lockAspect').checked) syncRowsToAspect();
-    updatePhysicalSizeStat();
-    renderSwatchList();
-  });
-  document.getElementById('rows').disabled = document.getElementById('lockAspect').checked;
-  updatePhysicalSizeStat();
-
   function modeColorInBox(data, W, x0, y0, x1, y1) {
     const BUCKET = 24;
     const buckets = new Map();
@@ -495,16 +568,13 @@
       }
     }
     let best = null;
-    for (const bucket of buckets.values()) {
-      if (!best || bucket.count > best.count) best = bucket;
-    }
+    for (const bucket of buckets.values()) { if (!best || bucket.count > best.count) best = bucket; }
     if (!best) return [128, 128, 128];
     return [Math.round(best.r / best.count), Math.round(best.g / best.count), Math.round(best.b / best.count)];
   }
-
   // Samples the *dominant* color per cell (mode, not blended average) so an
-  // already-blocky source photo (real case-mosaic pictures) reconstructs cleanly
-  // instead of producing off-palette blended noise at cell/block boundaries.
+  // already-blocky source photo reconstructs cleanly instead of producing
+  // off-palette blended noise at cell/block boundaries.
   function computeGridColors(img, cols, rows) {
     const maxDim = 900;
     const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
@@ -516,7 +586,6 @@
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(img, 0, 0, W, H);
     const data = ctx.getImageData(0, 0, W, H).data;
-
     const grid = [];
     for (let r = 0; r < rows; r++) {
       const y0 = Math.floor(r * H / rows), y1 = Math.max(y0 + 1, Math.floor((r + 1) * H / rows));
@@ -529,7 +598,6 @@
     }
     return grid;
   }
-
   function nearestSwatch(rgb) {
     let best = null, bestDist = Infinity;
     for (const sw of palette) {
@@ -539,36 +607,73 @@
     }
     return best;
   }
+  function getImageGridSize() {
+    const cols = Math.max(2, Math.min(120, parseInt(document.getElementById('imgCols').value, 10) || 24));
+    const rows = Math.max(2, Math.min(120, parseInt(document.getElementById('imgRows').value, 10) || 16));
+    return { cols, rows };
+  }
+  function syncImageRowsToAspect() {
+    if (!targetImage) return;
+    const cols = parseInt(document.getElementById('imgCols').value, 10) || 24;
+    const imgRatio = targetImage.naturalHeight / targetImage.naturalWidth;
+    const { w: caseW, h: caseH } = getCaseDims();
+    const rows = Math.max(2, Math.round(cols * imgRatio * (caseW / caseH)));
+    document.getElementById('imgRows').value = rows;
+  }
+  function updateImagePhysicalSizeStat() {
+    const { cols, rows } = getImageGridSize();
+    const { w: caseW, h: caseH } = getCaseDims();
+    const totalW = cols * caseW, totalH = rows * caseH;
+    document.getElementById('imgPhysicalSizeStat').textContent =
+      `Finished display: ${formatFeetInches(totalW)} wide x ${formatFeetInches(totalH)} tall (${cols * rows} cases)`;
+  }
 
-  document.getElementById('convertBtn').addEventListener('click', async () => {
-    if (!targetImage) { alert('Upload a target image first.'); return; }
-    if (palette.length === 0) { alert('Add at least one palette swatch first.'); return; }
+  document.getElementById('targetImg').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        targetImage = img;
+        const canvas = document.getElementById('targetPreview');
+        const maxW = 300, maxH = 240;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        const scale = Math.min(maxW / w, maxH / h, 1);
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        if (document.getElementById('lockAspect').checked) syncImageRowsToAspect();
+        updateImagePhysicalSizeStat();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('imgCols').addEventListener('input', () => {
+    if (document.getElementById('lockAspect').checked) syncImageRowsToAspect();
+    updateImagePhysicalSizeStat();
+  });
+  document.getElementById('imgRows').addEventListener('input', updateImagePhysicalSizeStat);
+  document.getElementById('lockAspect').addEventListener('change', (e) => {
+    document.getElementById('imgRows').disabled = e.target.checked;
+    if (e.target.checked) syncImageRowsToAspect();
+    updateImagePhysicalSizeStat();
+  });
+  document.getElementById('imgRows').disabled = document.getElementById('lockAspect').checked;
 
-    const cols = Math.max(2, Math.min(120, parseInt(document.getElementById('cols').value, 10) || 24));
-    const rows = Math.max(2, Math.min(120, parseInt(document.getElementById('rows').value, 10) || 16));
-
-    const colorGrid = computeGridColors(targetImage, cols, rows);
-    const grid = colorGrid.map(rowArr => rowArr.map(rgb => nearestSwatch(rgb)));
-    lastGrid = { cols, rows, grid };
-
+  async function renderImageMosaic() {
+    if (!lastImageGrid) return;
+    const { cols, rows, grid } = lastImageGrid;
     const usedNames = [...new Set(grid.flat().filter(Boolean).map(sw => sw.name))];
     const imgMap = await preloadImages(usedNames);
-    if (document.getElementById('orientation').value === 'sideways') {
+    if (document.getElementById('sideways').checked) {
       for (const [name, img] of imgMap) imgMap.set(name, rotateImage90(img));
     }
-
-    renderMosaic(grid, cols, rows, imgMap);
-    renderSchematic(grid, cols, rows, imgMap);
-    renderSummary(grid);
-    document.getElementById('outputPanel').style.display = 'block';
-  });
-
-  function renderMosaic(grid, cols, rows, imgMap) {
-    const wrap = document.getElementById('mosaicWrap');
-    wrap.innerHTML = '<canvas id="mosaicCanvas"></canvas>';
     const { w: caseW, h: caseH } = getCaseDims();
     const cellW = 18;
     const cellH = Math.round(cellW * (caseH / caseW));
+    document.getElementById('mosaicWrap').innerHTML = '<canvas id="mosaicCanvas"></canvas>';
     const canvas = document.getElementById('mosaicCanvas');
     canvas.width = cols * cellW;
     canvas.height = rows * cellH;
@@ -578,105 +683,593 @@
         const sw = grid[r][c];
         const x = c * cellW, y = r * cellH;
         const img = sw ? imgMap.get(sw.name) : null;
-        if (img) {
-          drawImageCover(ctx, img, x, y, cellW, cellH);
-        } else {
-          ctx.fillStyle = sw ? rgbStr(sw.color) : '#000';
-          ctx.fillRect(x, y, cellW, cellH);
-        }
+        if (img) drawImageCover(ctx, img, x, y, cellW, cellH);
+        else { ctx.fillStyle = sw ? rgbStr(sw.color) : '#000'; ctx.fillRect(x, y, cellW, cellH); }
       }
     }
-  }
+    document.getElementById('mosaicPreviewWrap').style.display = 'block';
 
-  function initials(name) {
-    return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3);
-  }
+    const totalW = cols * caseW, totalH = rows * caseH;
+    document.getElementById('gridStat').innerHTML =
+      `<b>${cols} &times; ${rows}</b> boxes &mdash; ${cols * rows} cases total &mdash; finished size ${formatFeetInches(totalW)} wide x ${formatFeetInches(totalH)} tall`;
 
-  function renderSchematic(grid, cols, rows, imgMap) {
-    const { w: caseW, h: caseH } = getCaseDims();
-    const totalW = cols * caseW;
-    const totalH = rows * caseH;
-    document.getElementById('gridStat').textContent =
-      `${cols} columns x ${rows} rows = ${cols * rows} cases total -- finished size ${formatFeetInches(totalW)} wide x ${formatFeetInches(totalH)} tall`;
-    const wrap = document.getElementById('gridSchematicWrap');
-    wrap.innerHTML = '';
-    const gridEl = document.createElement('div');
-    gridEl.className = 'grid-schematic';
-    gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    gridEl.style.setProperty('--cell-ratio', `${caseW} / ${caseH}`);
-    gridEl.style.maxWidth = '520px';
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const sw = grid[r][c];
-        const cellEl = document.createElement('div');
-        cellEl.className = 'grid-cell';
-        cellEl.title = `Row ${r + 1}, Col ${c + 1}: ${sw ? sw.name : 'unmatched'}`;
-        const entry = sw ? imgMap.get(sw.name) : null;
-        if (sw && (entry || sw.thumb)) {
-          const imgEl = document.createElement('img');
-          imgEl.src = entry ? imageSrcFor(entry) : sw.thumb;
-          imgEl.alt = sw.name;
-          imgEl.style.width = '100%';
-          imgEl.style.height = '100%';
-          imgEl.style.objectFit = 'cover';
-          imgEl.style.display = 'block';
-          cellEl.appendChild(imgEl);
-        } else {
-          cellEl.style.background = sw ? rgbStr(sw.color) : '#000';
-          cellEl.textContent = sw ? initials(sw.name) : '?';
-        }
-        gridEl.appendChild(cellEl);
-      }
-    }
-    wrap.appendChild(gridEl);
-  }
-
-  function renderSummary(grid) {
     const counts = new Map();
-    grid.forEach(row => row.forEach(sw => {
-      if (!sw) return;
-      counts.set(sw.name, (counts.get(sw.name) || 0) + 1);
-    }));
+    grid.forEach(rowArr => rowArr.forEach(sw => { if (!sw) return; counts.set(sw.name, (counts.get(sw.name) || 0) + 1); }));
     const total = [...counts.values()].reduce((a, b) => a + b, 0);
-    const table = document.getElementById('summaryTable');
     let html = '<tr><th>Variant</th><th>Cases needed</th><th>% of build</th></tr>';
-    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-    for (const [name, count] of sorted) {
+    [...counts.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
       const sw = palette.find(p => p.name === name);
       const pct = total ? ((count / total) * 100).toFixed(1) : '0.0';
       html += `<tr><td><span class="count-chip" style="background:${sw ? rgbStr(sw.color) : '#000'}"></span>${escapeHtml(name)}</td><td>${count}</td><td>${pct}%</td></tr>`;
-    }
+    });
     html += `<tr><td><strong>Total</strong></td><td><strong>${total}</strong></td><td>100.0%</td></tr>`;
-    table.innerHTML = html;
+    document.getElementById('summaryTable').innerHTML = html;
+    document.getElementById('summaryTable').style.display = 'table';
+    document.getElementById('exportCsvBtn').disabled = false;
   }
 
-  document.getElementById('exportCsvBtn').addEventListener('click', () => {
-    if (!lastGrid) return;
-    const { cols, rows, grid } = lastGrid;
-    let csv = 'Build Schematic\n';
-    csv += 'Row,Column,Variant\n';
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const sw = grid[r][c];
-        csv += `${r + 1},${c + 1},"${sw ? sw.name : 'unmatched'}"\n`;
-      }
+  function renderImagePreview() {
+    document.getElementById('editModeToolbar').style.display = 'none';
+    document.getElementById('previewWrap').style.display = 'none';
+    document.getElementById('editModeNote').style.display = 'none';
+    document.getElementById('letterColorsPanel').style.display = 'none';
+    if (!lastImageGrid) {
+      document.getElementById('mosaicPreviewWrap').style.display = 'none';
+      document.getElementById('gridStat').textContent = '';
+      document.getElementById('summaryTable').style.display = 'none';
+      document.getElementById('exportCsvBtn').disabled = true;
+      return;
     }
-    csv += '\nShopping List\n';
-    csv += 'Variant,Cases Needed\n';
-    const counts = new Map();
-    grid.forEach(row => row.forEach(sw => {
-      if (!sw) return;
-      counts.set(sw.name, (counts.get(sw.name) || 0) + 1);
-    }));
-    [...counts.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
-      csv += `"${name}",${count}\n`;
-    });
+    renderImageMosaic();
+  }
 
+  document.getElementById('convertBtn').addEventListener('click', async () => {
+    if (!targetImage) { alert('Upload a target image first.'); return; }
+    if (palette.length === 0) { alert('Add at least one palette swatch first.'); return; }
+    const { cols, rows } = getImageGridSize();
+    const colorGrid = computeGridColors(targetImage, cols, rows);
+    const grid = colorGrid.map(rowArr => rowArr.map(rgb => nearestSwatch(rgb)));
+    lastImageGrid = { cols, rows, grid };
+    await renderImageMosaic();
+  });
+
+  document.getElementById('downloadPngBtn').addEventListener('click', () => {
+    const canvas = document.getElementById('mosaicCanvas');
+    if (!canvas) return;
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pixelmerch_mosaic.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  });
+
+  let lastBuild = null;
+  let letterSwatchIdx = []; // per visible-letter palette index, when in palette mode
+  let bgSwatchIdx = 0;      // palette index used to fill every non-letter box
+  let cellOverrides = new Map();   // "r,c" -> color index, manual per-box color overrides (beats the auto letter/background color)
+  let cellOrientation = new Map(); // "r,c" -> 'upright' | 'sideways', manual per-box orientation override (beats the global Case Size default)
+  let removedCells = new Set();    // "r,c" keys with no case placed at all -- excluded from every count/stat/export, shown as a thin clickable gap
+  let editMode = 'color'; // 'color' | 'orientation' | 'remove' -- which override a grid click edits
+  let padTop = 0, padBottom = 0, padLeft = 0, padRight = 0; // extra blank canvas around the generated letters
+
+  // Wraps a word-generated layout with blank padding rows/cols on each side.
+  // Padding cells are just more null (non-letter) cells -- rendering, override,
+  // and removal logic already handles null cells as background, so no new
+  // cell-type concept is needed, only more of them.
+  function applyPadding(layout, top, bottom, left, right) {
+    const rows = layout.rows + top + bottom;
+    const cols = layout.cols + left + right;
+    const cellRows = [];
+    for (let r = 0; r < rows; r++) {
+      const row = new Array(cols).fill(null);
+      if (r >= top && r < top + layout.rows) {
+        const srcRow = layout.cellRows[r - top];
+        for (let c = 0; c < layout.cols; c++) row[left + c] = srcRow[c];
+      }
+      cellRows.push(row);
+    }
+    return { cols, rows, cellRows, letters: layout.letters };
+  }
+
+  // Top/left padding changes move every letter cell to a new absolute
+  // position -- shift stored override/orientation/removal keys by the same
+  // amount so a manual edit stays on the case it was made on, not on
+  // whatever now occupies that (r,c). Bottom/right padding never shifts
+  // anything, since it only adds/removes space past the existing content.
+  function shiftAllKeys(dr, dc) {
+    function shiftMap(map) {
+      const next = new Map();
+      map.forEach((val, key) => {
+        const [r, c] = key.split(',').map(Number);
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nc < 0) return; // was in padding that just got removed
+        next.set(nr + ',' + nc, val);
+      });
+      return next;
+    }
+    cellOverrides = shiftMap(cellOverrides);
+    cellOrientation = shiftMap(cellOrientation);
+    const nextRemoved = new Set();
+    removedCells.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nc < 0) return;
+      nextRemoved.add(nr + ',' + nc);
+    });
+    removedCells = nextRemoved;
+  }
+  function changePadding(side, input) {
+    const next = Math.max(0, Math.min(60, parseInt(input.value, 10) || 0));
+    input.value = next;
+    if (side === 'top') { shiftAllKeys(next - padTop, 0); padTop = next; }
+    else if (side === 'left') { shiftAllKeys(0, next - padLeft); padLeft = next; }
+    else if (side === 'bottom') { padBottom = next; }
+    else if (side === 'right') { padRight = next; }
+    render();
+  }
+  document.getElementById('padTop').addEventListener('change', (e) => changePadding('top', e.target));
+  document.getElementById('padBottom').addEventListener('change', (e) => changePadding('bottom', e.target));
+  document.getElementById('padLeft').addEventListener('change', (e) => changePadding('left', e.target));
+  document.getElementById('padRight').addEventListener('change', (e) => changePadding('right', e.target));
+
+  // Returns the list of {hex, name} options a cell can cycle through when clicked.
+  function overrideOptions() {
+    if (usingPalette()) return palette.map(sw => ({ hex: rgbHex(sw.color), name: sw.name, thumb: sw.thumb || null }));
+    return [
+      { hex: document.getElementById('colorHex').value || '#b0342a', name: 'Letter', thumb: null },
+      { hex: document.getElementById('bgColorHex').value || '#f2e8d5', name: 'Background', thumb: null }
+    ];
+  }
+  function usingPhotos() {
+    return document.getElementById('usePhotos').checked && usingPalette();
+  }
+
+  function getPixelRes() {
+    // Note: deliberately does NOT clamp-and-rewrite the input's value here --
+    // this runs on every keystroke via the 'input' listener below, and
+    // snapping the field mid-typing (e.g. after just "1" of "10") would cut
+    // the user off before they finish typing a valid multi-digit value.
+    // The 'change' listeners further down do the visible clamp, only once
+    // typing is finished (blur/Enter).
+    const rows = Math.max(3, Math.min(24, parseInt(document.getElementById('letterRows').value, 10) || 6));
+    const letterCols = Math.max(3, Math.min(24, parseInt(document.getElementById('letterCols').value, 10) || 5));
+    return { rows, letterCols };
+  }
+
+  // Returns { cols, rows, cellRows, letters } where cellRows[r][c] is either
+  // null (empty) or { letterIndex } for a lit cell belonging to letters[letterIndex].
+  function buildLayout(word, rows, letterCols) {
+    const chars = word.toUpperCase().split('');
+    const cellRows = Array.from({ length: rows }, () => []);
+    const letters = []; // one entry per visible (non-space) character, in order
+    let firstGlyph = true;
+    chars.forEach(ch => {
+      if (ch === ' ') {
+        for (let r = 0; r < rows; r++) for (let i = 0; i < SPACE_WIDTH; i++) cellRows[r].push(null);
+        firstGlyph = true;
+        return;
+      }
+      if (!/[A-Z0-9]/.test(ch)) return; // silently skip unsupported characters
+      const glyph = glyphBitmap(ch, rows, letterCols);
+      if (!firstGlyph) { for (let r = 0; r < rows; r++) cellRows[r].push(null); }
+      const letterIndex = letters.length;
+      letters.push(ch);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < glyph[r].length; c++) {
+          cellRows[r].push(glyph[r][c] === '1' ? { letterIndex } : null);
+        }
+      }
+      firstGlyph = false;
+    });
+    if (!letters.length) return null;
+    return { cols: cellRows[0].length, rows, cellRows, letters };
+  }
+
+  function getCaseDims() {
+    const w = parseFloat(document.getElementById('caseWidth').value) || 4.875;
+    if (document.getElementById('sideways').checked) return { w, h: w }; // top face only -- square
+    const h = parseFloat(document.getElementById('caseHeight').value) || 10.375;
+    return { w, h };
+  }
+  function globalOrientation() {
+    return document.getElementById('sideways').checked ? 'sideways' : 'upright';
+  }
+  function orientationDims(orientation) {
+    const w = parseFloat(document.getElementById('caseWidth').value) || 4.875;
+    if (orientation === 'sideways') return { w, h: w };
+    const h = parseFloat(document.getElementById('caseHeight').value) || 10.375;
+    return { w, h };
+  }
+  function formatFeetInches(inches) {
+    const totalIn = Math.round(inches * 16) / 16;
+    const feet = Math.floor(totalIn / 12);
+    const rem = Math.round((totalIn - feet * 12) * 100) / 100;
+    return feet > 0 ? `${feet}' ${rem}"` : `${rem}"`;
+  }
+
+  function usingPalette() {
+    return document.getElementById('usePalette').checked && palette.length > 0;
+  }
+
+  function syncLetterColorControls(letters) {
+    const panel = document.getElementById('letterColorsPanel');
+    document.getElementById('soloColorWrap').style.display = usingPalette() ? 'none' : 'block';
+    if (!usingPalette() || !letters.length) { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+
+    if (bgSwatchIdx >= palette.length) bgSwatchIdx = 0;
+    // Default the background to a different swatch than the first letter
+    // color when there's more than one, so the two aren't identical by default.
+    if (bgSwatchIdx === undefined) bgSwatchIdx = palette.length > 1 ? 1 : 0;
+
+    const bgSelect = document.getElementById('bgSwatchSelect');
+    bgSelect.innerHTML = palette.map((sw, si) =>
+      `<option value="${si}" ${si === bgSwatchIdx ? 'selected' : ''}>${escapeHtml(sw.name)}</option>`
+    ).join('');
+    bgSelect.onchange = () => { bgSwatchIdx = parseInt(bgSelect.value, 10); render(); };
+
+    // Resize the per-letter assignment array to match the current word,
+    // keeping existing choices and defaulting new slots to a palette cycle
+    // (offset by one from the background swatch so letters read distinctly).
+    const resized = letters.map((ch, i) => {
+      if (letterSwatchIdx[i] !== undefined && letterSwatchIdx[i] < palette.length) return letterSwatchIdx[i];
+      return (bgSwatchIdx + 1 + i) % palette.length;
+    });
+    letterSwatchIdx = resized;
+
+    const wrap = document.getElementById('letterColorsWrap');
+    wrap.innerHTML = '';
+    letters.forEach((ch, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'letter-color-cell';
+      const options = palette.map((sw, si) =>
+        `<option value="${si}" ${si === letterSwatchIdx[i] ? 'selected' : ''}>${escapeHtml(sw.name)}</option>`
+      ).join('');
+      cell.innerHTML = `
+        <div class="ch">${ch}</div>
+        <select data-letter="${i}">${options}</select>
+        <div class="chip" style="background:${rgbStr(palette[letterSwatchIdx[i]].color)}"></div>
+      `;
+      wrap.appendChild(cell);
+    });
+    wrap.querySelectorAll('select[data-letter]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        letterSwatchIdx[parseInt(sel.dataset.letter, 10)] = parseInt(sel.value, 10);
+        render();
+      });
+    });
+  }
+
+  function colorForLetterIndex(i) {
+    if (usingPalette()) {
+      const idx = letterSwatchIdx[i];
+      const sw = palette[idx];
+      return sw ? rgbHex(sw.color) : '#888888';
+    }
+    return document.getElementById('colorHex').value || '#b0342a';
+  }
+  function thumbForLetterIndex(i) {
+    if (!usingPalette()) return null;
+    const sw = palette[letterSwatchIdx[i]];
+    return sw ? sw.thumb || null : null;
+  }
+
+  function backgroundColor() {
+    if (usingPalette()) {
+      const sw = palette[bgSwatchIdx];
+      return sw ? rgbHex(sw.color) : '#888888';
+    }
+    return document.getElementById('bgColorHex').value || '#f2e8d5';
+  }
+  function backgroundName() {
+    if (usingPalette()) return (palette[bgSwatchIdx] || {}).name || '';
+    return 'Background';
+  }
+  function backgroundThumb() {
+    if (!usingPalette()) return null;
+    const sw = palette[bgSwatchIdx];
+    return sw ? sw.thumb || null : null;
+  }
+
+  function render() {
+    if (buildMode === 'image') { renderImagePreview(); return; }
+    document.getElementById('mosaicPreviewWrap').style.display = 'none';
+    document.getElementById('editModeToolbar').style.display = 'flex';
+    document.getElementById('previewWrap').style.display = '';
+    document.getElementById('editModeNote').style.display = '';
+    renderTextBuild();
+  }
+
+  function renderTextBuild() {
+    const word = document.getElementById('wordInput').value.trim();
+    const wrap = document.getElementById('previewWrap');
+    const statEl = document.getElementById('gridStat');
+    const exportBtn = document.getElementById('exportCsvBtn');
+    const summaryTable = document.getElementById('summaryTable');
+
+    if (!word) {
+      wrap.innerHTML = '<div class="placeholder-box">Type a word on the left to generate a build.</div>';
+      statEl.textContent = '';
+      exportBtn.disabled = true;
+      summaryTable.style.display = 'none';
+      document.getElementById('letterColorsPanel').style.display = 'none';
+      lastBuild = null;
+      return;
+    }
+
+    const { rows, letterCols } = getPixelRes();
+    const rawLayout = buildLayout(word, rows, letterCols);
+    if (!rawLayout) {
+      wrap.innerHTML = '<div class="placeholder-box">No supported letters/numbers found in that text.</div>';
+      statEl.textContent = '';
+      exportBtn.disabled = true;
+      summaryTable.style.display = 'none';
+      document.getElementById('letterColorsPanel').style.display = 'none';
+      lastBuild = null;
+      return;
+    }
+
+    syncLetterColorControls(rawLayout.letters);
+    const layout = applyPadding(rawLayout, padTop, padBottom, padLeft, padRight);
+
+    const { cols, rows: gridRows, cellRows, letters } = layout;
+    const { w: caseW, h: caseH } = getCaseDims();
+
+    // Columns are real bottom-anchored stacks, not a uniform grid: each case
+    // rests directly on the one below it (or the floor), so a case swapped to
+    // a shorter orientation pulls everything above it in that column straight
+    // down -- no floating gap, ever. A column with a shrunk case simply falls
+    // short of the others at the TOP; short columns never grow from the
+    // bottom because gravity has no reason to move the floor.
+    const pxPerInch = 14 / caseW; // keeps the same ~14px module width as before
+    const gridEl = document.createElement('div');
+    gridEl.className = 'grid-schematic';
+
+    const bgHex = backgroundColor(), bgName = backgroundName();
+    const options = overrideOptions();
+    const globalOrient = globalOrientation();
+    const counts = new Map(); // "hex|orient" -> {count, name, hex, orient}
+    const cellMeta = []; // parallel per-cell record (r,c,hex,name,orientation) for export
+    let totalCells = 0, orientOverrideCount = 0, maxColHeightIn = 0, removedCount = 0;
+
+    for (let c = 0; c < cols; c++) {
+      const colEl = document.createElement('div');
+      colEl.className = 'grid-col';
+      let colHeightIn = 0;
+      for (let r = 0; r < gridRows; r++) {
+        const cellInfo = cellRows[r][c];
+        const key = r + ',' + c;
+
+        if (removedCells.has(key)) {
+          removedCount++;
+          const ghost = document.createElement('div');
+          ghost.className = 'grid-cell removed';
+          ghost.dataset.r = r; ghost.dataset.c = c;
+          ghost.style.height = '6px';
+          ghost.title = 'No case here -- click in Place/Remove mode to place one back';
+          colEl.appendChild(ghost);
+          continue; // no case physically exists here: excluded from height, counts, and export
+        }
+
+        totalCells++;
+        const overrideIdx = cellOverrides.get(key);
+        let hex, name, thumb;
+        if (overrideIdx !== undefined && options[overrideIdx]) {
+          hex = options[overrideIdx].hex;
+          name = options[overrideIdx].name;
+          thumb = options[overrideIdx].thumb;
+        } else {
+          hex = cellInfo ? colorForLetterIndex(cellInfo.letterIndex) : bgHex;
+          thumb = cellInfo ? thumbForLetterIndex(cellInfo.letterIndex) : backgroundThumb();
+          name = cellInfo
+            ? (usingPalette() ? (palette[letterSwatchIdx[cellInfo.letterIndex]] || {}).name : null)
+            : bgName;
+        }
+        const orient = cellOrientation.get(key) || globalOrient;
+        if (cellOrientation.has(key)) orientOverrideCount++;
+        const ownH = orientationDims(orient).h;
+        colHeightIn += ownH;
+
+        const div = document.createElement('div');
+        div.className = 'grid-cell' + (overrideIdx !== undefined ? ' overridden' : '') + (orient !== globalOrient ? ' reoriented' : '');
+        div.dataset.r = r; div.dataset.c = c;
+        div.style.height = Math.max(2, ownH * pxPerInch).toFixed(1) + 'px';
+        if (usingPhotos() && thumb) {
+          div.style.backgroundColor = hex; // shows briefly/at edges while the image loads or if it's transparent
+          div.style.backgroundImage = `url('${thumb}')`;
+          div.style.backgroundSize = 'cover';
+          div.style.backgroundPosition = 'center';
+        } else {
+          div.style.background = hex;
+        }
+        div.title = orient !== globalOrient ? (orient === 'sideways' ? 'On its side (top face, square)' : 'Upright') : '';
+        colEl.appendChild(div);
+
+        const countKey = hex + '|' + orient;
+        if (!counts.has(countKey)) counts.set(countKey, { count: 0, name: name || hex, hex, orient });
+        counts.get(countKey).count++;
+        cellMeta.push({ r, c, hex, name: name || hex, orient });
+      }
+      if (colHeightIn > maxColHeightIn) maxColHeightIn = colHeightIn;
+      gridEl.appendChild(colEl);
+    }
+    gridEl.onclick = (e) => {
+      const cell = e.target.closest('.grid-cell');
+      if (!cell) return;
+      const r = parseInt(cell.dataset.r, 10), c = parseInt(cell.dataset.c, 10);
+      const key = r + ',' + c;
+      if (editMode === 'remove') {
+        if (removedCells.has(key)) removedCells.delete(key); else removedCells.add(key);
+        render();
+        return;
+      }
+      if (removedCells.has(key)) return; // inert outside Place/Remove mode -- no color/orientation on a case that isn't there
+      if (editMode === 'orientation') {
+        const cycle = [undefined, 'sideways', 'upright'];
+        const curIdx = cycle.indexOf(cellOrientation.get(key));
+        const next = cycle[(curIdx + 1) % cycle.length];
+        if (next === undefined) cellOrientation.delete(key); else cellOrientation.set(key, next);
+      } else {
+        const n = overrideOptions().length;
+        const cur = cellOverrides.has(key) ? cellOverrides.get(key) : -1;
+        cellOverrides.set(key, (cur + 1) % n);
+      }
+      render();
+    };
+    wrap.innerHTML = '';
+    wrap.appendChild(gridEl);
+
+    const totalW = cols * caseW;
+    const widthWarn = cols > 60 ? ' <span class="warn">&mdash; check that\'s not wider than your actual display space</span>' : '';
+    const orientNote = orientOverrideCount
+      ? ` &mdash; <span class="warn">${orientOverrideCount} box${orientOverrideCount > 1 ? 'es' : ''} on a different orientation, so ${orientOverrideCount === 1 ? 'that column is' : 'those columns are'} shorter than the rest (gravity pulls everything above it down to close the gap) &mdash; tallest column shown below</span>`
+      : '';
+    const removedNote = removedCount
+      ? ` &mdash; <span class="warn">${removedCount} spot${removedCount > 1 ? 's' : ''} with no case placed</span>`
+      : '';
+    statEl.innerHTML = `<b>${cols} &times; ${gridRows}</b> boxes &mdash; ${totalCells} cases total${removedCount ? '' : ', every box filled'} &mdash; finished size ${formatFeetInches(totalW)} wide x ${formatFeetInches(maxColHeightIn)} tall${widthWarn}${orientNote}${removedNote}`;
+
+    {
+      const header = orientOverrideCount
+        ? '<tr><th>Variant</th><th>Orientation</th><th>Cases needed</th><th>% of build</th></tr>'
+        : '<tr><th>Variant</th><th>Cases needed</th><th>% of build</th></tr>';
+      let html = header;
+      const sorted = [...counts.entries()].sort((a, b) => b[1].count - a[1].count);
+      sorted.forEach(([, info]) => {
+        const pct = totalCells ? ((info.count / totalCells) * 100).toFixed(1) : '0.0';
+        const orientCell = orientOverrideCount ? `<td>${info.orient}</td>` : '';
+        html += `<tr><td><span class="count-chip" style="background:${info.hex}"></span>${escapeHtml(info.name)}</td>${orientCell}<td>${info.count}</td><td>${pct}%</td></tr>`;
+      });
+      html += `<tr><td><strong>Total</strong></td>${orientOverrideCount ? '<td></td>' : ''}<td><strong>${totalCells}</strong></td><td>100.0%</td></tr>`;
+      summaryTable.innerHTML = html;
+      summaryTable.style.display = 'table';
+    }
+
+    lastBuild = {
+      word, cols, rows: gridRows, cellRows, bgHex, bgName, overrideOptionsSnapshot: options, cellMeta,
+      exportColors: letters.map((_, i) => ({
+        hex: colorForLetterIndex(i),
+        name: usingPalette() ? (palette[letterSwatchIdx[i]] || {}).name || '' : ''
+      }))
+    };
+    exportBtn.disabled = false;
+  }
+
+  document.getElementById('colorPicker').addEventListener('input', (e) => {
+    document.getElementById('colorHex').value = e.target.value.toUpperCase();
+    render();
+  });
+  document.getElementById('colorHex').addEventListener('input', (e) => {
+    const v = e.target.value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(v)) document.getElementById('colorPicker').value = v;
+    render();
+  });
+  document.getElementById('bgColorPicker').addEventListener('input', (e) => {
+    document.getElementById('bgColorHex').value = e.target.value.toUpperCase();
+    render();
+  });
+  document.getElementById('bgColorHex').addEventListener('input', (e) => {
+    const v = e.target.value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(v)) document.getElementById('bgColorPicker').value = v;
+    render();
+  });
+  document.getElementById('wordInput').addEventListener('input', () => { cellOverrides.clear(); cellOrientation.clear(); removedCells.clear(); render(); });
+  document.getElementById('caseWidth').addEventListener('input', () => {
+    if (document.getElementById('lockAspect').checked) syncImageRowsToAspect();
+    updateImagePhysicalSizeStat();
+    render();
+  });
+  document.getElementById('caseHeight').addEventListener('input', () => {
+    if (document.getElementById('lockAspect').checked) syncImageRowsToAspect();
+    updateImagePhysicalSizeStat();
+    render();
+  });
+  document.getElementById('sideways').addEventListener('change', (e) => {
+    const heightEl = document.getElementById('caseHeight');
+    heightEl.disabled = e.target.checked;
+    document.getElementById('sidewaysNote').innerHTML = e.target.checked
+      ? 'On &mdash; each case shows only its top face as a square (width x width). The height value above is ignored while this is checked.'
+      : 'Off by default &mdash; upright, using the width x height above. When checked, each case shows only its top face as a square (width x width), ignoring the height value.';
+    if (document.getElementById('lockAspect').checked) syncImageRowsToAspect();
+    updateImagePhysicalSizeStat();
+    render();
+  });
+  document.getElementById('letterRows').addEventListener('input', () => { cellOverrides.clear(); cellOrientation.clear(); removedCells.clear(); render(); });
+  document.getElementById('letterCols').addEventListener('input', () => { cellOverrides.clear(); cellOrientation.clear(); removedCells.clear(); render(); });
+  // Once typing is finished (blur/Enter), snap the field to the real clamped
+  // value so it never silently disagrees with what's actually rendering.
+  document.getElementById('letterRows').addEventListener('change', (e) => {
+    e.target.value = Math.max(3, Math.min(24, parseInt(e.target.value, 10) || 6));
+    render();
+  });
+  document.getElementById('letterCols').addEventListener('change', (e) => {
+    e.target.value = Math.max(3, Math.min(24, parseInt(e.target.value, 10) || 5));
+    render();
+  });
+  document.getElementById('usePalette').addEventListener('change', () => { cellOverrides.clear(); render(); });
+  document.getElementById('usePhotos').addEventListener('change', render);
+  document.getElementById('resetOverridesBtn').addEventListener('click', () => { cellOverrides.clear(); cellOrientation.clear(); removedCells.clear(); render(); });
+
+  function setEditMode(mode) {
+    editMode = mode;
+    const colorBtn = document.getElementById('editModeColorBtn'), orientBtn = document.getElementById('editModeOrientBtn'), removeBtn = document.getElementById('editModeRemoveBtn');
+    colorBtn.classList.toggle('secondary', mode !== 'color');
+    orientBtn.classList.toggle('secondary', mode !== 'orientation');
+    removeBtn.classList.toggle('secondary', mode !== 'remove');
+    const notes = {
+      color: 'Click any box in the preview to cycle it through your available colors, overriding the auto letter/background assignment for just that one case. Boxes with a manual override get a highlighted edge.',
+      orientation: 'Click any box to cycle its orientation: default → sideways (square) → upright → back to default. Cases are stacked with gravity: shrinking a box pulls everything above it in that column down to close the gap, so that column simply falls shorter at the top than its neighbors.',
+      remove: 'Click any box to remove it entirely -- no case placed there, excluded from the case count and finished-height stat, and the column above it drops down to close the gap (same gravity as a shorter orientation). It leaves behind a thin dashed gap you can click again to place a case back.'
+    };
+    document.getElementById('editModeNote').textContent = notes[mode];
+  }
+  document.getElementById('editModeColorBtn').addEventListener('click', () => setEditMode('color'));
+  document.getElementById('editModeOrientBtn').addEventListener('click', () => setEditMode('orientation'));
+  document.getElementById('editModeRemoveBtn').addEventListener('click', () => setEditMode('remove'));
+  setEditMode('color');
+
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    if (buildMode === 'image') {
+      if (!lastImageGrid) return;
+      const { cols, rows, grid } = lastImageGrid;
+      let csv = 'PixelMerch Build Schematic\nRow,Column,Variant\n';
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const sw = grid[r][c];
+          csv += `${r + 1},${c + 1},"${sw ? sw.name : 'unmatched'}"\n`;
+        }
+      }
+      csv += '\nShopping List\nVariant,Cases Needed\n';
+      const counts = new Map();
+      grid.forEach(rowArr => rowArr.forEach(sw => { if (!sw) return; counts.set(sw.name, (counts.get(sw.name) || 0) + 1); }));
+      [...counts.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, count]) => { csv += `"${name}",${count}\n`; });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pixelmerch_mosaic_build_schematic.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return;
+    }
+    if (!lastBuild) return;
+    const { word, cols, rows, cellMeta } = lastBuild;
+    let csv = `PixelMerch Build\nText,"${word}"\nGrid,${cols}x${rows}\n\nRow,Column,Variant,Color,Orientation\n`;
+    cellMeta.forEach(m => {
+      csv += `${m.r + 1},${m.c + 1},"${m.name}","${m.hex}","${m.orient}"\n`;
+    });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'pixelmerch_build_schematic.csv';
+    a.download = `pixelmerch_${word.replace(/\s+/g, '_').toLowerCase()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -685,6 +1278,8 @@
 
   loadPalette();
   renderSwatchList();
+  updateModeVisibility();
+  render();
 })();
 </script>
 
