@@ -190,11 +190,11 @@
       <div class="row2" style="margin-top:10px;">
         <div>
           <label for="imgCols">Columns</label>
-          <input type="number" id="imgCols" value="24" min="2" max="120">
+          <input type="number" id="imgCols" value="24" min="2" max="800">
         </div>
         <div>
           <label for="imgRows">Rows</label>
-          <input type="number" id="imgRows" value="16" min="2" max="120">
+          <input type="number" id="imgRows" value="16" min="2" max="800">
         </div>
       </div>
       <div class="checkbox-row">
@@ -694,8 +694,8 @@
     return best;
   }
   function getImageGridSize() {
-    const cols = Math.max(2, Math.min(120, parseInt(document.getElementById('imgCols').value, 10) || 24));
-    const rows = Math.max(2, Math.min(120, parseInt(document.getElementById('imgRows').value, 10) || 16));
+    const cols = Math.max(2, Math.min(800, parseInt(document.getElementById('imgCols').value, 10) || 24));
+    const rows = Math.max(2, Math.min(800, parseInt(document.getElementById('imgRows').value, 10) || 16));
     return { cols, rows };
   }
   function syncImageRowsToAspect() {
@@ -710,8 +710,19 @@
     const { cols, rows } = getImageGridSize();
     const { w: caseW, h: caseH } = getCaseDims();
     const totalW = cols * caseW, totalH = rows * caseH;
-    document.getElementById('imgPhysicalSizeStat').textContent =
-      `Finished display: ${formatFeetInches(totalW)} wide x ${formatFeetInches(totalH)} tall (${cols * rows} cases)`;
+    const rawCols = parseInt(document.getElementById('imgCols').value, 10) || 0;
+    const rawRows = parseInt(document.getElementById('imgRows').value, 10) || 0;
+    // Flag it explicitly when a typed value got clamped, rather than silently
+    // capping at 800 with no visible sign anything changed (the original bug
+    // Andrew hit at the old 120 cap).
+    const clampNote = (rawCols > 800 || rawRows > 800)
+      ? ` <span class="warn">&mdash; capped at 800 per side (you entered ${rawCols > 800 ? rawCols : cols}${rawCols > 800 || rawRows > 800 ? ' x ' : ''}${rawRows > 800 ? rawRows : rows})</span>`
+      : '';
+    const perfNote = (cols * rows > 40000)
+      ? ` <span class="warn">&mdash; ${(cols * rows).toLocaleString()} cases is a lot of on-screen boxes; Convert may take a moment</span>`
+      : '';
+    document.getElementById('imgPhysicalSizeStat').innerHTML =
+      `Finished display: ${formatFeetInches(totalW)} wide x ${formatFeetInches(totalH)} tall (${(cols * rows).toLocaleString()} cases)${clampNote}${perfNote}`;
   }
 
   document.getElementById('targetImg').addEventListener('change', (e) => {
