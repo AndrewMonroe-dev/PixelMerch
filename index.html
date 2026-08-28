@@ -313,6 +313,18 @@
       <div id="mosaicPreviewWrap" style="display:none;">
         <div class="note" style="margin-top:0;">Click any case below to cycle it through your palette, overriding the automatic color match for just that one case.</div>
         <div id="mosaicWrap"></div>
+        <div class="row2" style="margin-top:14px;">
+          <div>
+            <label for="printWidthFt">Intended print width (ft)</label>
+            <input type="number" id="printWidthFt" value="10" min="0.5" step="0.5">
+          </div>
+          <div>
+            <label for="printDpi">Print quality (DPI)</label>
+            <input type="number" id="printDpi" value="100" min="20" max="300" step="10">
+          </div>
+        </div>
+        <div class="note" id="exportResStat" style="margin-top:-4px;"></div>
+        <div class="note">Rule of thumb: 150 DPI for arm's-length viewing, 100 for across a room, 72 if it'll be seen from across a store or venue. A blocky case-mosaic doesn't need photo-grade 300 DPI.</div>
         <div class="toolbar">
           <button id="downloadPngBtn">Download picture (PNG)</button>
           <button class="secondary" id="resetImageOverridesBtn">Reset manual edits</button>
@@ -836,7 +848,41 @@
     document.getElementById('summaryTable').innerHTML = html;
     document.getElementById('summaryTable').style.display = 'table';
     document.getElementById('exportCsvBtn').disabled = false;
+    updateExportResStat();
   }
+
+  const MAX_CANVAS_DIM = 16000; // safely under the ~16,384px per-side cap most browsers enforce on canvas elements
+
+  // Converts the requested print width + DPI into pixels-per-case for the
+  // export canvas -- resolution is a property of the FINAL PRINT, not of the
+  // grid itself, so the same 184x400 build can target a crisp close-up piece
+  // or a soft far-viewed banner just by changing these two numbers.
+  function getExportCellW(cols) {
+    const printWidthFt = Math.max(0.1, parseFloat(document.getElementById('printWidthFt').value) || 10);
+    const dpi = Math.max(10, Math.min(300, parseFloat(document.getElementById('printDpi').value) || 100));
+    const totalPxWidth = printWidthFt * 12 * dpi;
+    return { cellW: totalPxWidth / cols, dpi, printWidthFt };
+  }
+
+  function updateExportResStat() {
+    const statEl = document.getElementById('exportResStat');
+    if (!lastImageGrid) { statEl.textContent = ''; return; }
+    const { cols, rows } = lastImageGrid;
+    const { w: caseW, h: caseH } = getCaseDims();
+    const { cellW, dpi, printWidthFt } = getExportCellW(cols);
+    const cellH = cellW * (caseH / caseW);
+    const pxW = Math.round(cols * cellW), pxH = Math.round(rows * cellH);
+    const megapixels = (pxW * pxH) / 1e6;
+    let warn = '';
+    if (pxW > MAX_CANVAS_DIM || pxH > MAX_CANVAS_DIM) {
+      warn = ` <span class="warn">&mdash; ${pxW.toLocaleString()} x ${pxH.toLocaleString()}px exceeds the ~16,000px browser canvas limit; lower the DPI or print width, or the download will refuse to build</span>`;
+    } else if (megapixels > 120) {
+      warn = ` <span class="warn">&mdash; ${megapixels.toFixed(0)} megapixels is very large; the download may take a while or strain memory</span>`;
+    }
+    statEl.innerHTML = `Export size: <b>${pxW.toLocaleString()} &times; ${pxH.toLocaleString()}px</b> at ${dpi} DPI for a ${printWidthFt}ft-wide print${warn}`;
+  }
+  document.getElementById('printWidthFt').addEventListener('input', updateExportResStat);
+  document.getElementById('printDpi').addEventListener('input', updateExportResStat);
 
   function renderImagePreview() {
     document.getElementById('editModeToolbar').style.display = 'none';
@@ -887,11 +933,16 @@
       for (const [name, img] of imgMap) imgMap.set(name, rotateImage90(img));
     }
     const { w: caseW, h: caseH } = getCaseDims();
-    const cellW = 18;
-    const cellH = Math.round(cellW * (caseH / caseW));
+    const { cellW } = getExportCellW(cols);
+    const cellH = cellW * (caseH / caseW);
+    const pxW = Math.round(cols * cellW), pxH = Math.round(rows * cellH);
+    if (pxW > MAX_CANVAS_DIM || pxH > MAX_CANVAS_DIM) {
+      alert(`That print width/DPI combo needs a ${pxW.toLocaleString()} x ${pxH.toLocaleString()}px image, which is too large for the browser to build (limit is around ${MAX_CANVAS_DIM.toLocaleString()}px per side). Lower the DPI or the print width and try again.`);
+      return;
+    }
     const canvas = document.createElement('canvas');
-    canvas.width = cols * cellW;
-    canvas.height = rows * cellH;
+    canvas.width = pxW;
+    canvas.height = pxH;
     const ctx = canvas.getContext('2d');
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
