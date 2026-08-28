@@ -96,6 +96,12 @@
   .swatch-name { flex: 1; font-size: 12px; }
   .swatch-rgb { font-family: var(--mono); font-size: 10px; color: var(--muted); }
   .empty-note { color: var(--muted); font-size: 12px; font-style: italic; }
+  .drop-zone {
+    border: 1.5px dashed var(--border); border-radius: 8px; padding: 14px 10px;
+    text-align: center; color: var(--muted); font-size: 12px; margin-bottom: 12px;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .drop-zone.drag-over { border-color: var(--accent); background: rgba(79,140,255,0.08); color: var(--text); }
   .letter-colors { display: flex; flex-wrap: wrap; gap: 8px; }
   .letter-color-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 46px; }
   .letter-color-cell .ch { font-family: var(--mono); font-size: 12px; color: var(--muted); }
@@ -149,8 +155,9 @@
 <div class="layout">
   <div class="left-col">
 
-    <div class="panel">
+    <div class="panel" id="palettePanel">
       <h2>1. Case Palette</h2>
+      <div class="drop-zone" id="paletteDropZone">Drag case photos here &mdash; straight out of PowerPoint or a folder, one or several at once</div>
       <label for="swatchImg">Case face photo</label>
       <input type="file" id="swatchImg" accept="image/*">
       <label for="swatchName">Variant name</label>
@@ -405,29 +412,102 @@
     });
   }
 
-  document.getElementById('addSwatchBtn').addEventListener('click', () => {
+  // Adds one file to the palette, resolving once its swatch is in and saved.
+  // Shared by the single Add button and the drag-and-drop zone (which can
+  // hand it several files back to back, e.g. every case photo off one
+  // PowerPoint slide dragged in as a group).
+  function addPaletteSwatchFromFile(file, name) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const color = averageColorFromImage(img);
+          const thumb = makeThumbnailDataUrl(img, 240);
+          palette.push({ name, color, thumb });
+          resolve(true);
+        };
+        img.onerror = () => resolve(false);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(false);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Turns a dropped file's name into a starting variant name -- strips the
+  // extension and PowerPoint's generic "Picture N" / "image" placeholders
+  // fall back to "Case N" (counting from the palette's current size) so
+  // nothing lands blank; still fully editable by removing and re-adding.
+  function nameFromFileName(fileName, fallbackIndex) {
+    const base = fileName.replace(/\.[^.]+$/, '').trim();
+    if (!base || /^(image|picture\s*\d*)$/i.test(base)) return `Case ${fallbackIndex}`;
+    return base;
+  }
+
+  async function addPaletteSwatchesFromFileList(files) {
+    const imageFiles = [...files].filter(f => f.type.startsWith('image/'));
+    if (!imageFiles.length) { alert('No image files found in that drop.'); return; }
+    let added = 0;
+    for (const file of imageFiles) {
+      const name = nameFromFileName(file.name, palette.length + 1);
+      const ok = await addPaletteSwatchFromFile(file, name);
+      if (ok) added++;
+    }
+    if (added) {
+      savePalette();
+      renderSwatchList();
+      render();
+    }
+  }
+
+  document.getElementById('addSwatchBtn').addEventListener('click', async () => {
     const fileInput = document.getElementById('swatchImg');
     const nameInput = document.getElementById('swatchName');
     const name = nameInput.value.trim();
     if (!fileInput.files[0]) { alert('Choose a case photo first.'); return; }
     if (!name) { alert('Enter a variant name.'); return; }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const color = averageColorFromImage(img);
-        const thumb = makeThumbnailDataUrl(img, 240);
-        palette.push({ name, color, thumb });
-        savePalette();
-        renderSwatchList();
-        fileInput.value = '';
-        nameInput.value = '';
-        render();
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(fileInput.files[0]);
+    const ok = await addPaletteSwatchFromFile(fileInput.files[0], name);
+    if (ok) {
+      savePalette();
+      renderSwatchList();
+      fileInput.value = '';
+      nameInput.value = '';
+      render();
+    }
   });
+
+  // Drag-and-drop: lets Andrew drag case photos straight out of PowerPoint
+  // (or a folder, Explorer, etc.) onto the palette panel instead of using
+  // the file picker one at a time. Bound on the whole panel, not just the
+  // drop-zone strip, so dropping anywhere in "1. Case Palette" works.
+  (function setupPaletteDragDrop() {
+    const panel = document.getElementById('palettePanel');
+    const zone = document.getElementById('paletteDropZone');
+    let dragDepth = 0; // tracks nested dragenter/dragleave across child elements
+    panel.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragDepth++;
+      zone.classList.add('drag-over');
+    });
+    panel.addEventListener('dragover', (e) => { e.preventDefault(); });
+    panel.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) zone.classList.remove('drag-over');
+    });
+    panel.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      zone.classList.remove('drag-over');
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) {
+        alert('Could not read an image from that drag. PowerPoint sometimes needs the image dragged to your desktop first, then dragged in from there.');
+        return;
+      }
+      addPaletteSwatchesFromFileList(files);
+    });
+  })();
 
   document.getElementById('clearPaletteBtn').addEventListener('click', () => {
     if (palette.length === 0) return;
