@@ -312,7 +312,7 @@
       <h2>Mosaic Preview</h2>
       <div id="mosaicPreviewWrap" style="display:none;">
         <div class="note" style="margin-top:0;">Click any case below to cycle it through your palette, overriding the automatic color match for just that one case.</div>
-        <div id="mosaicWrap"></div>
+        <div id="mosaicWrap" style="position:relative;"></div>
         <div class="row2" style="margin-top:14px;">
           <div>
             <label for="printWidthFt">Intended print width (ft)</label>
@@ -325,6 +325,29 @@
         </div>
         <div class="note" id="exportResStat" style="margin-top:-4px;"></div>
         <div class="note">Rule of thumb: 150 DPI for arm's-length viewing, 100 for across a room, 72 if it'll be seen from across a store or venue. A blocky case-mosaic doesn't need photo-grade 300 DPI.</div>
+
+        <label for="logoImg" style="margin-top:6px;">Logo overlay (optional &mdash; drawn full quality on top, never pixelated)</label>
+        <input type="file" id="logoImg" accept="image/*">
+        <div class="row2">
+          <div>
+            <label for="logoPosition">Position</label>
+            <select id="logoPosition">
+              <option value="none">No logo</option>
+              <option value="top-left">Top left</option>
+              <option value="top-right">Top right</option>
+              <option value="bottom-left">Bottom left</option>
+              <option value="bottom-right">Bottom right</option>
+              <option value="center">Center</option>
+            </select>
+          </div>
+          <div>
+            <label for="logoSizePct">Logo width (% of print width)</label>
+            <input type="number" id="logoSizePct" value="15" min="1" max="100" step="1">
+          </div>
+        </div>
+        <label for="logoMarginPct">Margin from edge (% of print width)</label>
+        <input type="number" id="logoMarginPct" value="2" min="0" max="50" step="0.5">
+
         <div class="toolbar">
           <button id="downloadPngBtn">Download picture (PNG)</button>
           <button class="secondary" id="resetImageOverridesBtn">Reset manual edits</button>
@@ -849,6 +872,79 @@
     document.getElementById('summaryTable').style.display = 'table';
     document.getElementById('exportCsvBtn').disabled = false;
     updateExportResStat();
+    updateLogoPreview();
+  }
+
+  // ── Logo overlay: composited on top of the export canvas at full quality
+  // AFTER the case-color pipeline runs, never fed through the mosaic/nearest-
+  // color matching itself -- that's the whole point (a real logo shouldn't
+  // get chopped into blocky case colors like the rest of the picture).
+  let logoImage = null;
+
+  document.getElementById('logoImg').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        logoImage = img;
+        if (document.getElementById('logoPosition').value === 'none') {
+          document.getElementById('logoPosition').value = 'bottom-right';
+        }
+        updateLogoPreview();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('logoPosition').addEventListener('change', updateLogoPreview);
+  document.getElementById('logoSizePct').addEventListener('input', updateLogoPreview);
+  document.getElementById('logoMarginPct').addEventListener('input', updateLogoPreview);
+
+  // Returns the logo's draw rect in whatever pixel space totalW/totalH describe
+  // (the live preview's on-screen box, or the final export canvas) -- same
+  // percent-of-width math either way, so the preview always matches the export.
+  function computeLogoRect(totalW, totalH) {
+    const sizePct = Math.max(1, Math.min(100, parseFloat(document.getElementById('logoSizePct').value) || 15));
+    const marginPct = Math.max(0, Math.min(50, parseFloat(document.getElementById('logoMarginPct').value) || 0));
+    const w = totalW * (sizePct / 100);
+    const h = w * (logoImage.naturalHeight / logoImage.naturalWidth);
+    const margin = totalW * (marginPct / 100);
+    const position = document.getElementById('logoPosition').value;
+    let x, y;
+    if (position === 'center') { x = (totalW - w) / 2; y = (totalH - h) / 2; }
+    else {
+      x = position.endsWith('right') ? totalW - w - margin : margin;
+      y = position.startsWith('bottom') ? totalH - h - margin : margin;
+    }
+    return { x, y, w, h };
+  }
+
+  function updateLogoPreview() {
+    const wrap = document.getElementById('mosaicWrap');
+    const existing = document.getElementById('logoPreviewImg');
+    if (existing) existing.remove();
+    const position = document.getElementById('logoPosition').value;
+    if (!logoImage || position === 'none' || !lastImageGrid) return;
+    // Sized against the grid element itself (not the wrapper, which is full
+    // block width) -- the grid sits flush at the wrapper's top-left with no
+    // centering, so its own on-screen box is the correct coordinate space.
+    const gridEl = wrap.querySelector('.image-grid-schematic');
+    if (!gridEl) return;
+    const stageW = gridEl.offsetWidth, stageH = gridEl.offsetHeight;
+    if (!stageW || !stageH) return;
+    const { x, y, w, h } = computeLogoRect(stageW, stageH);
+    const imgEl = document.createElement('img');
+    imgEl.id = 'logoPreviewImg';
+    imgEl.src = logoImage.src;
+    imgEl.style.position = 'absolute';
+    imgEl.style.pointerEvents = 'none';
+    imgEl.style.left = x + 'px';
+    imgEl.style.top = y + 'px';
+    imgEl.style.width = w + 'px';
+    imgEl.style.height = h + 'px';
+    wrap.appendChild(imgEl);
   }
 
   const MAX_CANVAS_DIM = 16000; // safely under the ~16,384px per-side cap most browsers enforce on canvas elements
@@ -952,6 +1048,13 @@
         if (img) drawImageCover(ctx, img, x, y, cellW, cellH);
         else { ctx.fillStyle = sw ? rgbStr(sw.color) : '#000'; ctx.fillRect(x, y, cellW, cellH); }
       }
+    }
+    // Logo drawn last, straight from its own source image at full resolution
+    // onto the finished canvas -- it never passes through the case-color grid
+    // above, so it stays crisp regardless of how blocky the mosaic itself is.
+    if (logoImage && document.getElementById('logoPosition').value !== 'none') {
+      const { x, y, w, h } = computeLogoRect(pxW, pxH);
+      ctx.drawImage(logoImage, x, y, w, h);
     }
     canvas.toBlob((blob) => {
       const url = URL.createObjectURL(blob);
