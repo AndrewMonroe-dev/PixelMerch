@@ -380,11 +380,14 @@
 
       <div class="toolbar">
         <button id="downloadPngBtn">Download picture (PNG)</button>
+        <button id="downloadPdfBtn">Download print-ready PDF (tiled)</button>
       </div>
+      <div class="note" id="pdfExportNote" style="display:none;"></div>
     </div>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 (function () {
   // ── Palette (case photo -> sampled average color), same storage key/shape
@@ -1125,6 +1128,144 @@
       ctx.drawImage(logoImage, x, y, w, h);
     }
     downloadCanvasAsPng(canvas, 'pixelmerch_mosaic.png');
+  }
+
+  document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+    if (buildMode !== 'image') { alert('Print-ready PDF export is only available in Picture (image) mode.'); return; }
+    downloadImagePdf();
+  });
+
+  // Same source data as downloadImagePng (grid + preloaded/rotated swatch
+  // images), but instead of one giant canvas capped at MAX_CANVAS_DIM per
+  // side, this builds the full-resolution image as a grid of smaller tile
+  // canvases and places each one at its correct physical offset on a single
+  // jsPDF page sized to the true print dimensions -- so a print that's too
+  // big for the browser's own canvas limit (a wide banner at high DPI, say)
+  // can still be exported at full resolution instead of being refused.
+  async function downloadImagePdf() {
+    if (!lastImageGrid) return;
+    if (typeof jspdf === 'undefined') {
+      alert('The PDF export library failed to load (check your internet connection) -- try again, or use the PNG download instead.');
+      return;
+    }
+    const { cols, rows, grid } = lastImageGrid;
+    const usedNames = [...new Set(
+      Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => {
+        const sw = imageSwatchAt(r, c, grid[r][c]);
+        return sw ? sw.name : null;
+      })).flat().filter(Boolean)
+    )];
+    const imgMap = await preloadImages(usedNames);
+    if (document.getElementById('sideways').checked) {
+      for (const [name, img] of imgMap) imgMap.set(name, rotateImage90(img));
+    }
+    const { w: caseW, h: caseH } = getCaseDims();
+    const { cellW, dpi } = getExportCellW(cols);
+    const cellH = cellW * (caseH / caseW);
+    const pxW = Math.round(cols * cellW), pxH = Math.round(rows * cellH);
+    // The true physical print size, in inches -- what the PDF page itself
+    // gets sized to, regardless of how many tiles the pixels get split into.
+    const totalWIn = pxW / dpi, totalHIn = pxH / dpi;
+
+    // The PDF format itself (not jsPDF, not our own MAX_CANVAS_DIM tiling) hard-caps a single
+    // page at 14400pt = 200in per side -- verified live that jsPDF silently CLAMPS a bigger
+    // request instead of erroring, which would have placed later tiles' physical offsets past
+    // the visible page, quietly cutting off part of the print with no warning at all.
+    const PDF_MAX_PAGE_DIM_IN = 200;
+    if (totalWIn > PDF_MAX_PAGE_DIM_IN || totalHIn > PDF_MAX_PAGE_DIM_IN) {
+      alert(`This print is ${totalWIn.toFixed(1)}" x ${totalHIn.toFixed(1)}", but a single PDF page tops out at ${PDF_MAX_PAGE_DIM_IN}" per side (that's a PDF format limit, not a PixelMerch one). Lower the DPI or print width and try again, or use the PNG download if your browser's canvas limit allows it.`);
+      return;
+    }
+
+    const hasLogo = logoImage && document.getElementById('logoPosition').value !== 'none';
+    const logoRect = hasLogo ? computeLogoRect(pxW, pxH) : null;
+
+    const noteEl = document.getElementById('pdfExportNote');
+    noteEl.style.display = 'block';
+    const btn = document.getElementById('downloadPdfBtn');
+    btn.disabled = true;
+
+    try {
+      // jsPDF's orientation must actually agree with which of these two is bigger, or it silently
+      // swaps the page's real width/height to match its default portrait assumption -- verified
+      // live: format:[180, 63.9] with no orientation (or orientation:'p') on genuinely landscape-
+      // shaped content quietly produced a 63.9 x 180 page instead, which would have placed every
+      // tile's physical offset on a page too narrow to hold them.
+      const orientation = totalWIn >= totalHIn ? 'l' : 'p';
+      const pdf = new jspdf.jsPDF({ orientation, unit: 'in', format: [totalWIn, totalHIn] });
+
+      const tilesX = Math.ceil(pxW / MAX_CANVAS_DIM);
+      const tilesY = Math.ceil(pxH / MAX_CANVAS_DIM);
+      const totalTiles = tilesX * tilesY;
+      let tileIndex = 0;
+
+      for (let ty = 0; ty < tilesY; ty++) {
+        const tileY0 = ty * MAX_CANVAS_DIM;
+        const tileH = Math.min(MAX_CANVAS_DIM, pxH - tileY0);
+        for (let tx = 0; tx < tilesX; tx++) {
+          tileIndex++;
+          const tileX0 = tx * MAX_CANVAS_DIM;
+          const tileW = Math.min(MAX_CANVAS_DIM, pxW - tileX0);
+
+          noteEl.textContent = `Building tile ${tileIndex} of ${totalTiles}...`;
+          // Yield to the browser so the note above actually paints before the
+          // next tile's (synchronous, CPU-heavy) canvas work starts -- without
+          // this the whole loop runs to completion before the UI updates once.
+          await new Promise(resolve => setTimeout(resolve, 0));
+
+          const tileCanvas = document.createElement('canvas');
+          tileCanvas.width = tileW;
+          tileCanvas.height = tileH;
+          const ctx = tileCanvas.getContext('2d');
+
+          // Only touch the grid cells that actually overlap this tile, not the
+          // whole grid every time -- the coordinates below are offset by the
+          // tile's own origin so they land correctly on the small tile canvas.
+          const c0 = Math.max(0, Math.floor(tileX0 / cellW));
+          const c1 = Math.min(cols, Math.ceil((tileX0 + tileW) / cellW));
+          const r0 = Math.max(0, Math.floor(tileY0 / cellH));
+          const r1 = Math.min(rows, Math.ceil((tileY0 + tileH) / cellH));
+          for (let r = r0; r < r1; r++) {
+            for (let c = c0; c < c1; c++) {
+              const sw = imageSwatchAt(r, c, grid[r][c]);
+              const x = c * cellW - tileX0, y = r * cellH - tileY0;
+              const img = sw ? imgMap.get(sw.name) : null;
+              if (img) drawImageCover(ctx, img, x, y, cellW, cellH);
+              else { ctx.fillStyle = sw ? rgbStr(sw.color) : '#000'; ctx.fillRect(x, y, cellW, cellH); }
+            }
+          }
+
+          // Logo overlay: sliced to this tile's intersection with the logo's
+          // full-image rect (in both source and destination space) so a logo
+          // straddling a tile boundary still lines up seamlessly once all the
+          // tiles are placed on the PDF page, instead of being redrawn whole
+          // (and clipped/misaligned) on every tile it touches.
+          if (hasLogo) {
+            const { x: lx, y: ly, w: lw, h: lh } = logoRect;
+            const ix0 = Math.max(lx, tileX0), iy0 = Math.max(ly, tileY0);
+            const ix1 = Math.min(lx + lw, tileX0 + tileW), iy1 = Math.min(ly + lh, tileY0 + tileH);
+            if (ix1 > ix0 && iy1 > iy0) {
+              const scaleX = logoImage.naturalWidth / lw, scaleY = logoImage.naturalHeight / lh;
+              const sx = (ix0 - lx) * scaleX, sy = (iy0 - ly) * scaleY;
+              const sw2 = (ix1 - ix0) * scaleX, sh2 = (iy1 - iy0) * scaleY;
+              const dx = ix0 - tileX0, dy = iy0 - tileY0;
+              ctx.drawImage(logoImage, sx, sy, sw2, sh2, dx, dy, ix1 - ix0, iy1 - iy0);
+            }
+          }
+
+          // JPEG, not PNG -- a multi-tile full-resolution mosaic PDF gets huge
+          // fast, and this content (case-photo swatches, no transparency) has
+          // nothing to lose from lossy compression at this quality.
+          const tileDataUrl = tileCanvas.toDataURL('image/jpeg', 0.92);
+          pdf.addImage(tileDataUrl, 'JPEG', tileX0 / dpi, tileY0 / dpi, tileW / dpi, tileH / dpi);
+        }
+      }
+
+      noteEl.textContent = `Done -- downloaded pixelmerch_mosaic_print.pdf (${totalTiles} tile${totalTiles > 1 ? 's' : ''} stitched at ${totalWIn.toFixed(1)}" x ${totalHIn.toFixed(1)}").`;
+      pdf.save('pixelmerch_mosaic_print.pdf');
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // Builds the downloadable PNG for Text mode from the same effective
